@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Danger Dash</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #0a0a2a;
+      background-image: 
+        radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 10px),
+        radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 5px),
+        radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 10px);
+      background-size: 550px 550px, 350px 350px, 250px 250px;
+      background-position: 0 0, 40px 60px, 130px 270px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Arial', sans-serif;
+      color: white;
+    }
+    
+    #gameContainer {
+      position: relative;
+      text-align: center;
+    }
+    
+    
+    canvas {
+      border: 3px solid #4a9eff;
+      background-color: #111133;
+      box-shadow: 0 0 20px rgba(74, 158, 255, 0.5);
+      display: block;
+    }
+    
+    #uiPanel {
+      background-color: rgba(10, 10, 40, 0.8);
+      padding: 15px;
+      border: 2px solid #4a9eff;
+      border-top: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    #scoreDisplay {
+      font-size: 24px;
+      font-weight: bold;
+      color: #ffff34;
+    }
+    
+    #difficultyPanel {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .difficultyBtn {
+      padding: 8px 15px;
+      background-color: #222255;
+      color: white;
+      border: 2px solid #4a9eff;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .difficultyBtn.active {
+      background-color: #4a9eff;
+      color: #111133;
+    }
+    
+    #controlsPanel {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .controlBtn {
+      padding: 8px 15px;
+      background-color: #222255;
+      color: white;
+      border: 2px solid #4a9eff;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    #pauseOverlay, #startOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 30, 0.85);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      color: white;
+    }
+    
+    #startOverlay {
+      display: flex;
+    }
+    
+    #pauseOverlay {
+      display: none;
+    }
+    
+    .overlayTitle {
+      font-size: 48px;
+      color: #ffff34;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px rgba(255, 255, 52, 0.7);
+    }
+    
+    .overlayText {
+      font-size: 20px;
+      margin-bottom: 30px;
+      max-width: 80%;
+      text-align: center;
+      line-height: 1.5;
+    }
+    
+    .startBtn {
+      padding: 15px 40px;
+      background-color: #4a9eff;
+      color: #111133;
+      border: none;
+      border-radius: 8px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(74, 158, 255, 0.7);
+      transition: all 0.3s;
+    }
+    
+    .startBtn:hover {
+      background-color: #ffff34;
+      box-shadow: 0 0 20px rgba(255, 255, 52, 0.9);
+    }
+    
+    #audioControls {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    #muteBtn {
+      padding: 8px 15px;
+      background-color: rgba(10, 10, 40, 0.8);
+      color: white;
+      border: 2px solid #4a9eff;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    #volumeSlider {
+      width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    
+    <div id="uiPanel">
+      <div id="scoreDisplay">Score: 0</div>
+      <div id="difficultyPanel">
+        <button id="easyBtn" class="difficultyBtn active">Easy</button>
+        <button id="mediumBtn" class="difficultyBtn">Medium</button>
+        <button id="hardBtn" class="difficultyBtn">Hard</button>
+      </div>
+      <div id="controlsPanel">
+        <button id="pauseBtn" class="controlBtn">Pause (P)</button>
+        <button id="restartBtn" class="controlBtn">Restart (R)</button>
+      </div>
+    </div>
+    
+    <div id="startOverlay">
+      <div class="overlayTitle">DANGER DASH</div>
+      <div class="overlayText">Avoid the obstacles by jumping with SPACEBAR. Change difficulty level and pause with P. Press START to begin!</div>
+      <button id="startBtn" class="startBtn">START GAME</button>
+    </div>
+    
+    <div id="pauseOverlay">
+      <div class="overlayTitle">GAME PAUSED</div>
+      <div class="overlayText">Game is paused. Press P to resume or use the buttons below.</div>
+      <button id="resumeBtn" class="startBtn">RESUME GAME</button>
+    </div>
+  </div>
+  
+  <div id="audioControls">
+    <button id="muteBtn">Mute Audio</button>
+    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+  </div>
+  
+  <audio id="gameMusic" loop>
+    <source src="https://assets.mixkit.co/music/preview/mixkit-game-show-suspense-waiting-667.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+  
+  <script>
+    // Game elements
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const gameMusic = document.getElementById("gameMusic");
+    const volumeSlider = document.getElementById("volumeSlider");
+    const muteBtn = document.getElementById("muteBtn");
+    
+    // Game state
+    let gameState = "start"; // "start", "playing", "paused", "gameOver"
+    let difficulty = "easy"; // "easy", "medium", "hard"
+    let score = 0;
+    let frame = 0;
+    let musicMuted = false;
+    
+    // Difficulty settings
+    const difficultySettings = {
+      easy: {
+        obstacleSpeed: 5,
+        obstacleFrequency: 60,
+        gravity: 1.0,
+        jumpStrength: -22,
+        scoreMultiplier: 1
+      },
+      medium: {
+        obstacleSpeed: 7,
+        obstacleFrequency: 45,
+        gravity: 1.2,
+        jumpStrength: -25,
+        scoreMultiplier: 1.5
+      },
+      hard: {
+        obstacleSpeed: 9,
+        obstacleFrequency: 30,
+        gravity: 1.4,
+        jumpStrength: -28,
+        scoreMultiplier: 2
+      }
+    };
+    
+    // Player setup
+    const player = {
+      x: 50,
+      y: 300,
+      width: 40,
+      height: 40,
+      velocityY: 0,
+      grounded: true,
+      color: "#ffff34"
+    };
+    
+    // Obstacles array
+    let obstacles = [];
+    
+    // UI Elements
+    const startOverlay = document.getElementById("startOverlay");
+    const pauseOverlay = document.getElementById("pauseOverlay");
+    const scoreDisplay = document.getElementById("scoreDisplay");
+    const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const resumeBtn = document.getElementById("resumeBtn");
+    const restartBtn = document.getElementById("restartBtn");
+    const easyBtn = document.getElementById("easyBtn");
+    const mediumBtn = document.getElementById("mediumBtn");
+    const hardBtn = document.getElementById("hardBtn");
+    
+    // Initialize audio
+    gameMusic.volume = volumeSlider.value / 100;
+    gameMusic.play().catch(e => console.log("Audio play failed:", e));
+    
+    // Event listeners for controls
+    startBtn.addEventListener("click", startGame);
+    pauseBtn.addEventListener("click", togglePause);
+    resumeBtn.addEventListener("click", togglePause);
+    restartBtn.addEventListener("click", restartGame);
+    
+    // Difficulty buttons
+    easyBtn.addEventListener("click", () => setDifficulty("easy"));
+    mediumBtn.addEventListener("click", () => setDifficulty("medium"));
+    hardBtn.addEventListener("click", () => setDifficulty("hard"));
+    
+    // Volume controls
+    volumeSlider.addEventListener("input", () => {
+      gameMusic.volume = volumeSlider.value / 100;
+    });
+    
+    muteBtn.addEventListener("click", () => {
+      musicMuted = !musicMuted;
+      gameMusic.muted = musicMuted;
+      muteBtn.textContent = musicMuted ? "Unmute Audio" : "Mute Audio";
+    });
+    
+    // Keyboard controls
+    document.addEventListener("keydown", (e) => {
+      // Space to jump when playing
+      if (e.code === "Space" && gameState === "playing" && player.grounded) {
+        player.velocityY = difficultySettings[difficulty].jumpStrength;
+        player.grounded = false;
+      }
+      
+      // P to pause/resume
+      if (e.code === "KeyP") {
+        togglePause();
+      }
+      
+      // R to restart
+      if (e.code === "KeyR") {
+        restartGame();
+      }
+      
+      // Space to start from start screen
+      if (e.code === "Space" && gameState === "start") {
+        startGame();
+      }
+    });
+    
+    // Set difficulty function
+    function setDifficulty(level) {
+      difficulty = level;
+      
+      // Update UI
+      easyBtn.classList.remove("active");
+      mediumBtn.classList.remove("active");
+      hardBtn.classList.remove("active");
+      
+      if (level === "easy") easyBtn.classList.add("active");
+      if (level === "medium") mediumBtn.classList.add("active");
+      if (level === "hard") hardBtn.classList.add("active");
+      
+      // If game is already playing, update player physics
+      if (gameState === "playing") {
+        player.velocityY = 0;
+        player.grounded = true;
+      }
+    }
+    
+    // Start game function
+    function startGame() {
+      gameState = "playing";
+      startOverlay.style.display = "none";
+      score = 0;
+      frame = 0;
+      obstacles = [];
+      player.y = 300;
+      player.velocityY = 0;
+      player.grounded = true;
+      
+      // Ensure music is playing
+      if (!musicMuted) {
+        gameMusic.play().catch(e => console.log("Audio play failed:", e));
+      }
+      
+      // Start game loop
+      update();
+    }
+    
+    // Toggle pause function
+    function togglePause() {
+      if (gameState === "playing") {
+        gameState = "paused";
+        pauseOverlay.style.display = "flex";
+        gameMusic.pause();
+      } else if (gameState === "paused") {
+        gameState = "playing";
+        pauseOverlay.style.display = "none";
+        if (!musicMuted) {
+          gameMusic.play().catch(e => console.log("Audio play failed:", e));
+        }
+        update();
+      }
+    }
+    
+    // Restart game function
+    function restartGame() {
+      gameState = "start";
+      pauseOverlay.style.display = "none";
+      startOverlay.style.display = "flex";
+      score = 0;
+      frame = 0;
+      obstacles = [];
+      player.y = 300;
+      player.velocityY = 0;
+      player.grounded = true;
+      
+      // Reset score display
+      scoreDisplay.textContent = "Score: 0";
+    }
+    
+    // Create obstacle function
+    function createObstacle() {
+      const settings = difficultySettings[difficulty];
+      const height = 30 + Math.random() * 40;
+      const width = 40 + Math.random() * 30;
+      
+      obstacles.push({
+        x: canvas.width,
+        y: canvas.height - height,
+        width: width,
+        height: height,
+        color: "#ff3333"
+      });
+    }
+    
+    // Update game function
+    function update() {
+      if (gameState !== "playing") return;
+      
+      frame++;
+      
+      // Clear canvas with background
+      ctx.fillStyle = "#111133";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw stars
+      drawStars();
+      
+      // Get current difficulty settings
+      const settings = difficultySettings[difficulty];
+      
+      // Player physics
+      player.velocityY += settings.gravity;
+      player.y += player.velocityY;
+      
+      // Ground collision
+      if (player.y + player.height >= canvas.height) {
+        player.y = canvas.height - player.height;
+        player.velocityY = 0;
+        player.grounded = true;
+      }
+      
+      // Draw player with shadow
+      ctx.shadowColor = player.color;
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.width, player.height);
+      ctx.shadowBlur = 0;
+      
+      // Draw player face/details
+      ctx.fillStyle = "#111133";
+      ctx.fillRect(player.x + 25, player.y + 10, 8, 8); // eye
+      ctx.fillRect(player.x + 10, player.y + 25, 20, 8); // mouth
+      
+      // Generate obstacles based on difficulty
+      if (frame % settings.obstacleFrequency === 0) {
+        createObstacle();
+      }
+      
+      // Draw and move obstacles
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        obs.x -= settings.obstacleSpeed;
+        
+        // Draw obstacle with shadow
+        ctx.shadowColor = obs.color;
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = obs.color;
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        ctx.shadowBlur = 0;
+        
+        // Draw obstacle details
+        ctx.fillStyle = "#990000";
+        ctx.fillRect(obs.x + 5, obs.y + 5, obs.width - 10, 5);
+        ctx.fillRect(obs.x + 5, obs.y + obs.height - 10, obs.width - 10, 5);
+        
+        // Collision detection
+        if (
+          player.x < obs.x + obs.width &&
+          player.x + player.width > obs.x &&
+          player.y < obs.y + obs.height &&
+          player.y + player.height > obs.y
+        ) {
+          gameOver();
+          return;
+        }
+        
+        // Remove off-screen obstacles
+        if (obs.x + obs.width < 0) {
+          obstacles.splice(i, 1);
+        }
+      }
+      
+      // Update score
+      score += 0.1 * settings.scoreMultiplier;
+      scoreDisplay.textContent = "Score: " + Math.floor(score);
+      
+      // Draw score on canvas too
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 24px Arial";
+      ctx.fillText("SCORE: " + Math.floor(score), 20, 40);
+      
+      // Draw difficulty
+      ctx.fillStyle = "#4a9eff";
+      ctx.font = "bold 16px Arial";
+      ctx.fillText("DIFFICULTY: " + difficulty.toUpperCase(), 20, 70);
+      
+      // Continue game loop
+      requestAnimationFrame(update);
+    }
+    
+    // Game over function
+    function gameOver() {
+      gameState = "gameOver";
+      gameMusic.pause();
+      
+      // Show game over alert
+      setTimeout(() => {
+        alert("Game Over!\nDifficulty: " + difficulty.toUpperCase() + "\nYour Score: " + Math.floor(score));
+        restartGame();
+      }, 100);
+    }
+    
+    // Draw stars in background
+    function drawStars() {
+      ctx.fillStyle = "#ffffff";
+      for (let i = 0; i < 50; i++) {
+        const x = (i * 37) % canvas.width;
+        const y = (i * 19) % canvas.height;
+        const size = Math.sin(frame * 0.01 + i) * 1.5 + 1.5;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    
+    // Initialize difficulty
+    setDifficulty("easy");
+  </script>
+</body>
+</html>
