@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Danger Dash</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
             margin: 0;
@@ -20,6 +21,7 @@
             font-family: 'Arial', sans-serif;
             color: white;
             overflow: hidden;
+            touch-action: none;
         }
         
         #gameContainer {
@@ -32,6 +34,7 @@
             background-color: #111133;
             box-shadow: 0 0 20px rgba(74, 158, 255, 0.5);
             display: block;
+            touch-action: none;
         }
         
         #uiPanel {
@@ -173,6 +176,7 @@
             padding: 15px;
             border-radius: 10px;
             border: 2px solid #4a9eff;
+            z-index: 5;
         }
         
         #muteBtn {
@@ -241,6 +245,172 @@
             font-size: 14px;
             margin-top: 5px;
         }
+        
+        /* Mobile Controls */
+        #mobileControls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 5;
+            touch-action: none;
+        }
+        
+        .mobile-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: rgba(34, 34, 85, 0.9);
+            border: 3px solid #4a9eff;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            box-shadow: 0 0 15px rgba(74, 158, 255, 0.5);
+        }
+        
+        .mobile-btn:active {
+            background-color: #4a9eff;
+            transform: scale(0.95);
+        }
+        
+        #jumpBtn {
+            background-color: rgba(255, 255, 52, 0.9);
+            border-color: #ffff34;
+            color: #111133;
+            font-size: 32px;
+        }
+        
+        #mobileControlRow {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .mobile-pause-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: rgba(34, 34, 85, 0.9);
+            border: 3px solid #4a9eff;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        
+        .mobile-pause-btn:active {
+            background-color: #4a9eff;
+            transform: scale(0.95);
+        }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 850px) {
+            canvas {
+                width: 95vw;
+                height: auto;
+                max-width: 800px;
+                max-height: 500px;
+            }
+            
+            #uiPanel {
+                flex-direction: column;
+                gap: 15px;
+                padding: 10px;
+            }
+            
+            #scoreDisplay, #difficultyPanel, #controlsPanel {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            #scoreDisplay {
+                text-align: center;
+            }
+            
+            .overlayTitle {
+                font-size: 36px;
+            }
+            
+            .overlayText {
+                font-size: 18px;
+            }
+            
+            .startBtn {
+                padding: 12px 30px;
+                font-size: 20px;
+            }
+            
+            .instructions {
+                padding: 15px;
+                margin-top: 20px;
+            }
+            
+            #audioControls {
+                bottom: 10px;
+                right: 10px;
+                padding: 10px;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .overlayTitle {
+                font-size: 28px;
+            }
+            
+            .overlayText {
+                font-size: 16px;
+            }
+            
+            .instructions {
+                font-size: 14px;
+                padding: 10px;
+            }
+            
+            .mobile-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 20px;
+            }
+            
+            #jumpBtn {
+                font-size: 28px;
+            }
+            
+            .mobile-pause-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 16px;
+            }
+        }
+        
+        /* Hide mobile controls on desktop by default */
+        @media (min-width: 1024px) {
+            #mobileControls {
+                display: none;
+            }
+        }
+        
+        /* Show mobile controls on touch devices */
+        @media (hover: none) and (pointer: coarse) {
+            #mobileControls {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
@@ -260,6 +430,15 @@
             </div>
         </div>
         
+        <!-- Mobile Controls -->
+        <div id="mobileControls">
+            <div id="mobileControlRow">
+                <div id="pauseMobileBtn" class="mobile-pause-btn">P</div>
+                <div id="restartMobileBtn" class="mobile-pause-btn">R</div>
+            </div>
+            <div id="jumpBtn" class="mobile-btn">↑</div>
+        </div>
+        
         <div id="startOverlay">
             <div class="overlayTitle">DANGER DASH</div>
             <div class="overlayText">Navigate through space, avoid obstacles, and survive as long as possible!</div>
@@ -269,6 +448,7 @@
                 <h3>How to Play:</h3>
                 <ul>
                     <li><span class="key">SPACEBAR</span> or <span class="key">UP ARROW</span> - Jump over obstacles</li>
+                    <li><span class="key">TAP SCREEN</span> or <span class="key">JUMP BUTTON</span> - Jump on mobile</li>
                     <li><span class="key">P</span> - Pause/Resume game</li>
                     <li><span class="key">R</span> - Restart game</li>
                     <li>Choose difficulty: <strong>Easy</strong>, <strong>Medium</strong>, or <strong>Hard</strong></li>
@@ -323,6 +503,12 @@
         const muteBtn = document.getElementById("muteBtn");
         const audioStatus = document.getElementById("audioStatus");
         
+        // Mobile controls
+        const jumpBtn = document.getElementById("jumpBtn");
+        const pauseMobileBtn = document.getElementById("pauseMobileBtn");
+        const restartMobileBtn = document.getElementById("restartMobileBtn");
+        const mobileControls = document.getElementById("mobileControls");
+        
         // Game state
         let gameState = "start"; // "start", "playing", "paused", "gameOver"
         let difficulty = "easy"; // "easy", "medium", "hard"
@@ -332,6 +518,7 @@
         let gameSpeed = 1;
         let gameSpeedIncreaseThreshold = 500;
         let audioInitialized = false; // Track if audio has been initialized by user
+        let isMobile = false; // Track if user is on mobile
         
         // Difficulty settings
         const difficultySettings = {
@@ -436,6 +623,26 @@
         }
         
         // ============================================
+        // MOBILE DETECTION AND CONTROLS
+        // ============================================
+        
+        // Check if user is on mobile device
+        function checkMobile() {
+            isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                      (navigator.maxTouchPoints > 0);
+            
+            // Show mobile controls if on mobile
+            if (isMobile) {
+                mobileControls.style.display = "flex";
+            }
+            
+            // Also show mobile controls on touch devices
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                mobileControls.style.display = "flex";
+            }
+        }
+        
+        // ============================================
         // EVENT LISTENERS
         // ============================================
         
@@ -449,6 +656,14 @@
         resumeBtn.addEventListener("click", togglePause);
         restartBtn.addEventListener("click", restartGame);
         restartFromPauseBtn.addEventListener("click", restartGame);
+        
+        // Mobile control buttons
+        jumpBtn.addEventListener("touchstart", handleJump);
+        jumpBtn.addEventListener("mousedown", handleJump);
+        pauseMobileBtn.addEventListener("touchstart", togglePause);
+        pauseMobileBtn.addEventListener("mousedown", togglePause);
+        restartMobileBtn.addEventListener("touchstart", restartGame);
+        restartMobileBtn.addEventListener("mousedown", restartGame);
         
         // Difficulty buttons
         easyBtn.addEventListener("click", () => setDifficulty("easy"));
@@ -479,10 +694,7 @@
             
             // Space or ArrowUp to jump when playing
             if ((e.code === "Space" || e.code === "ArrowUp") && gameState === "playing" && player.grounded) {
-                player.velocityY = difficultySettings[difficulty].jumpStrength;
-                player.grounded = false;
-                jumpSound.currentTime = 0;
-                playAudio(jumpSound);
+                handleJump();
             }
             
             // P to pause/resume
@@ -500,6 +712,31 @@
                 startGame();
             }
         });
+        
+        // Touch screen jump (for mobile)
+        canvas.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            if (gameState === "playing" && player.grounded) {
+                handleJump();
+            }
+        });
+        
+        // Click to jump (for desktop touch screens)
+        canvas.addEventListener("mousedown", (e) => {
+            if (gameState === "playing" && player.grounded) {
+                handleJump();
+            }
+        });
+        
+        // Handle jump function
+        function handleJump() {
+            if (gameState === "playing" && player.grounded) {
+                player.velocityY = difficultySettings[difficulty].jumpStrength;
+                player.grounded = false;
+                jumpSound.currentTime = 0;
+                playAudio(jumpSound);
+            }
+        }
         
         // ============================================
         // GAME LOGIC FUNCTIONS
@@ -802,6 +1039,11 @@
             ctx.font = "14px Arial";
             ctx.fillText("SPACE/UP: Jump | P: Pause | R: Restart", canvas.width - 350, 40);
             
+            // Show mobile hint if on mobile
+            if (isMobile) {
+                ctx.fillText("TAP SCREEN to jump", canvas.width - 350, 60);
+            }
+            
             // Continue game loop
             requestAnimationFrame(update);
         }
@@ -834,25 +1076,4 @@
             ctx.fillText("Score: " + Math.floor(score), canvas.width / 2, canvas.height / 2);
             ctx.fillText("Difficulty: " + difficulty.toUpperCase(), canvas.width / 2, canvas.height / 2 + 40);
             
-            ctx.fillStyle = "#4a9eff";
-            ctx.font = "18px Arial";
-            ctx.fillText("Press R to restart or wait 5 seconds", canvas.width / 2, canvas.height / 2 + 90);
-            ctx.textAlign = "start";
-            
-            // Auto-restart after 5 seconds
-            setTimeout(() => {
-                restartGame();
-            }, 5000);
-        }
-        
-        // ============================================
-        // INITIALIZE GAME
-        // ============================================
-        setDifficulty("easy");
-        initializeAudioVolume();
-        
-        // Set initial audio status
-        audioStatus.textContent = "Audio: Click to activate";
-    </script>
-</body>
-</html>
+            ctx.fillStyle = "#4
