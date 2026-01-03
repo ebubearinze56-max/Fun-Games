@@ -55,6 +55,14 @@
             text-align: left;
         }
         
+        #highScoreDisplay {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4a9eff;
+            min-width: 180px;
+            text-align: center;
+        }
+        
         #difficultyPanel {
             display: flex;
             gap: 10px;
@@ -318,6 +326,31 @@
             transform: scale(0.95);
         }
         
+        /* High Score Display */
+        .high-score-label {
+            color: #4a9eff;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+        
+        .high-score-value {
+            color: #ffff34;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .new-high-score {
+            color: #ff3333;
+            animation: pulse 1s infinite;
+            font-weight: bold;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
         /* Mobile responsive adjustments */
         @media (max-width: 850px) {
             canvas {
@@ -338,8 +371,9 @@
                 justify-content: center;
             }
             
-            #scoreDisplay {
+            #scoreDisplay, #highScoreDisplay {
                 text-align: center;
+                min-width: auto;
             }
             
             .overlayTitle {
@@ -364,6 +398,11 @@
                 bottom: 10px;
                 right: 10px;
                 padding: 10px;
+            }
+            
+            #mobileControls {
+                bottom: 10px;
+                left: 10px;
             }
         }
         
@@ -396,6 +435,10 @@
                 height: 50px;
                 font-size: 16px;
             }
+            
+            #highScoreDisplay {
+                font-size: 16px;
+            }
         }
         
         /* Hide mobile controls on desktop by default */
@@ -419,6 +462,10 @@
         
         <div id="uiPanel">
             <div id="scoreDisplay">Score: 0</div>
+            <div id="highScoreDisplay">
+                <div class="high-score-label">HIGH SCORE</div>
+                <div class="high-score-value" id="currentHighScore">0 (Easy)</div>
+            </div>
             <div id="difficultyPanel">
                 <button id="easyBtn" class="difficultyBtn active">Easy</button>
                 <button id="mediumBtn" class="difficultyBtn">Medium</button>
@@ -453,7 +500,26 @@
                     <li><span class="key">R</span> - Restart game</li>
                     <li>Choose difficulty: <strong>Easy</strong>, <strong>Medium</strong>, or <strong>Hard</strong></li>
                     <li>Game gets faster as your score increases!</li>
+                    <li>High scores are saved for each difficulty level</li>
                 </ul>
+                
+                <div style="margin-top: 20px; text-align: center;">
+                    <h3 style="color: #ffff34; margin-bottom: 10px;">High Scores</h3>
+                    <div style="display: flex; justify-content: center; gap: 30px;">
+                        <div>
+                            <div style="color: #4a9eff; font-size: 16px;">Easy</div>
+                            <div id="startEasyHighScore" class="high-score-value">0</div>
+                        </div>
+                        <div>
+                            <div style="color: #4a9eff; font-size: 16px;">Medium</div>
+                            <div id="startMediumHighScore" class="high-score-value">0</div>
+                        </div>
+                        <div>
+                            <div style="color: #4a9eff; font-size: 16px;">Hard</div>
+                            <div id="startHardHighScore" class="high-score-value">0</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -488,6 +554,11 @@
         <source src="https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-2759.mp3" type="audio/mpeg">
     </audio>
     
+    <audio id="highScoreSound" preload="auto">
+        <!-- High score sound effect -->
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+    </audio>
+    
     <script>
         // ============================================
         // GAME INITIALIZATION
@@ -499,6 +570,7 @@
         const backgroundMusic = document.getElementById("backgroundMusic");
         const jumpSound = document.getElementById("jumpSound");
         const gameOverSound = document.getElementById("gameOverSound");
+        const highScoreSound = document.getElementById("highScoreSound");
         const volumeSlider = document.getElementById("volumeSlider");
         const muteBtn = document.getElementById("muteBtn");
         const audioStatus = document.getElementById("audioStatus");
@@ -508,6 +580,12 @@
         const pauseMobileBtn = document.getElementById("pauseMobileBtn");
         const restartMobileBtn = document.getElementById("restartMobileBtn");
         const mobileControls = document.getElementById("mobileControls");
+        
+        // High score display elements
+        const currentHighScoreElement = document.getElementById("currentHighScore");
+        const startEasyHighScoreElement = document.getElementById("startEasyHighScore");
+        const startMediumHighScoreElement = document.getElementById("startMediumHighScore");
+        const startHardHighScoreElement = document.getElementById("startHardHighScore");
         
         // Game state
         let gameState = "start"; // "start", "playing", "paused", "gameOver"
@@ -519,6 +597,14 @@
         let gameSpeedIncreaseThreshold = 500;
         let audioInitialized = false; // Track if audio has been initialized by user
         let isMobile = false; // Track if user is on mobile
+        let newHighScore = false; // Track if player achieved a new high score
+        
+        // High scores storage
+        let highScores = {
+            easy: 0,
+            medium: 0,
+            hard: 0
+        };
         
         // Difficulty settings
         const difficultySettings = {
@@ -577,6 +663,85 @@
         const hardBtn = document.getElementById("hardBtn");
         
         // ============================================
+        // HIGH SCORE MANAGEMENT
+        // ============================================
+        
+        // Load high scores from localStorage
+        function loadHighScores() {
+            const savedScores = localStorage.getItem("dangerDashHighScores");
+            if (savedScores) {
+                try {
+                    highScores = JSON.parse(savedScores);
+                } catch (e) {
+                    console.error("Error loading high scores:", e);
+                    // If there's an error, use default scores
+                    highScores = { easy: 0, medium: 0, hard: 0 };
+                }
+            }
+            
+            // Update display
+            updateHighScoreDisplay();
+            updateStartScreenHighScores();
+        }
+        
+        // Save high scores to localStorage
+        function saveHighScores() {
+            try {
+                localStorage.setItem("dangerDashHighScores", JSON.stringify(highScores));
+            } catch (e) {
+                console.error("Error saving high scores:", e);
+            }
+        }
+        
+        // Update high score for current difficulty
+        function updateHighScore(currentScore) {
+            if (currentScore > highScores[difficulty]) {
+                highScores[difficulty] = Math.floor(currentScore);
+                saveHighScores();
+                newHighScore = true;
+                
+                // Play high score sound if audio is initialized
+                if (audioInitialized && !musicMuted) {
+                    highScoreSound.currentTime = 0;
+                    playAudio(highScoreSound);
+                }
+                
+                return true;
+            }
+            newHighScore = false;
+            return false;
+        }
+        
+        // Update the high score display in the UI panel
+        function updateHighScoreDisplay() {
+            const highScore = highScores[difficulty];
+            let displayText = highScore + " (" + difficulty.charAt(0).toUpperCase() + difficulty.slice(1) + ")";
+            
+            if (newHighScore) {
+                currentHighScoreElement.innerHTML = `<span class="new-high-score">${displayText} NEW!</span>`;
+            } else {
+                currentHighScoreElement.textContent = displayText;
+            }
+        }
+        
+        // Update high scores on the start screen
+        function updateStartScreenHighScores() {
+            startEasyHighScoreElement.textContent = highScores.easy;
+            startMediumHighScoreElement.textContent = highScores.medium;
+            startHardHighScoreElement.textContent = highScores.hard;
+        }
+        
+        // Reset all high scores
+        function resetHighScores() {
+            if (confirm("Are you sure you want to reset all high scores?")) {
+                highScores = { easy: 0, medium: 0, hard: 0 };
+                saveHighScores();
+                updateHighScoreDisplay();
+                updateStartScreenHighScores();
+            }
+        }
+        
+        // ============================================
         // AUDIO MANAGEMENT FUNCTIONS
         // ============================================
         
@@ -586,6 +751,7 @@
             backgroundMusic.volume = volume;
             jumpSound.volume = volume * 0.3;
             gameOverSound.volume = volume * 0.5;
+            highScoreSound.volume = volume * 0.7;
         }
         
         // Safe audio play function - only plays after user interaction
@@ -680,6 +846,7 @@
             backgroundMusic.muted = musicMuted;
             jumpSound.muted = musicMuted;
             gameOverSound.muted = musicMuted;
+            highScoreSound.muted = musicMuted;
             muteBtn.textContent = musicMuted ? "Unmute Audio" : "Mute Audio";
             audioStatus.textContent = musicMuted ? "Audio: Muted" : "Audio: Active";
             audioStatus.style.color = musicMuted ? "#ff3333" : "#4a9eff";
@@ -705,6 +872,11 @@
             // R to restart
             if (e.code === "KeyR") {
                 restartGame();
+            }
+            
+            // H to reset high scores (hidden feature)
+            if (e.code === "KeyH" && e.ctrlKey) {
+                resetHighScores();
             }
             
             // Space or Enter to start from start screen
@@ -754,6 +926,9 @@
             if (level === "medium") mediumBtn.classList.add("active");
             if (level === "hard") hardBtn.classList.add("active");
             
+            // Update high score display
+            updateHighScoreDisplay();
+            
             // If game is already playing, update player physics
             if (gameState === "playing") {
                 player.velocityY = 0;
@@ -772,6 +947,11 @@
             player.velocityY = 0;
             player.grounded = true;
             player.trail = [];
+            newHighScore = false;
+            
+            // Update score display
+            scoreDisplay.textContent = "Score: 0";
+            updateHighScoreDisplay();
             
             // Start background music if audio is initialized
             if (audioInitialized && !musicMuted) {
@@ -820,6 +1000,9 @@
             if (audioInitialized) {
                 backgroundMusic.pause();
             }
+            
+            // Update start screen high scores
+            updateStartScreenHighScores();
         }
         
         function createObstacle() {
@@ -1023,16 +1206,23 @@
             score += 0.1 * settings.scoreMultiplier * gameSpeed;
             scoreDisplay.textContent = "Score: " + Math.floor(score);
             
+            // Update high score display if needed
+            updateHighScoreDisplay();
+            
             // Draw score on canvas
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 24px Arial";
             ctx.fillText("SCORE: " + Math.floor(score), 20, 40);
             
+            // Draw high score on canvas
+            ctx.fillStyle = "#4a9eff";
+            ctx.fillText("HIGH: " + highScores[difficulty], 20, 70);
+            
             // Draw difficulty and speed
             ctx.fillStyle = "#4a9eff";
             ctx.font = "bold 16px Arial";
-            ctx.fillText("DIFFICULTY: " + difficulty.toUpperCase(), 20, 70);
-            ctx.fillText("SPEED: x" + gameSpeed.toFixed(1), 20, 95);
+            ctx.fillText("DIFFICULTY: " + difficulty.toUpperCase(), 20, 100);
+            ctx.fillText("SPEED: x" + gameSpeed.toFixed(1), 20, 125);
             
             // Draw game instructions
             ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
@@ -1050,6 +1240,9 @@
         
         function gameOver() {
             gameState = "gameOver";
+            
+            // Update high score
+            const isNewHighScore = updateHighScore(score);
             
             // Play game over sound
             if (audioInitialized && !musicMuted) {
@@ -1069,11 +1262,45 @@
             ctx.fillStyle = "#ffff34";
             ctx.font = "bold 48px Arial";
             ctx.textAlign = "center";
-            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 50);
+            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 80);
             
             ctx.fillStyle = "#ffffff";
-            ctx.font = "24px Arial";
-            ctx.fillText("Score: " + Math.floor(score), canvas.width / 2, canvas.height / 2);
-            ctx.fillText("Difficulty: " + difficulty.toUpperCase(), canvas.width / 2, canvas.height / 2 + 40);
+            ctx.font = "28px Arial";
+            ctx.fillText("Score: " + Math.floor(score), canvas.width / 2, canvas.height / 2 - 30);
             
-            ctx.fillStyle = "#4
+            // Show if new high score was achieved
+            if (isNewHighScore) {
+                ctx.fillStyle = "#ff3333";
+                ctx.font = "bold 32px Arial";
+                ctx.fillText("NEW HIGH SCORE!", canvas.width / 2, canvas.height / 2 + 10);
+            }
+            
+            ctx.fillStyle = "#4a9eff";
+            ctx.font = "24px Arial";
+            ctx.fillText("Difficulty: " + difficulty.toUpperCase(), canvas.width / 2, canvas.height / 2 + 50);
+            ctx.fillText("High Score: " + highScores[difficulty], canvas.width / 2, canvas.height / 2 + 90);
+            
+            ctx.fillStyle = "#ffff34";
+            ctx.font = "18px Arial";
+            ctx.fillText("Press R to restart or wait 5 seconds", canvas.width / 2, canvas.height / 2 + 140);
+            ctx.textAlign = "start";
+            
+            // Auto-restart after 5 seconds
+            setTimeout(() => {
+                restartGame();
+            }, 5000);
+        }
+        
+        // ============================================
+        // INITIALIZE GAME
+        // ============================================
+        setDifficulty("easy");
+        initializeAudioVolume();
+        loadHighScores(); // Load high scores from storage
+        checkMobile(); // Check if user is on mobile
+        
+        // Set initial audio status
+        audioStatus.textContent = "Audio: Click to activate";
+    </script>
+</body>
+</html>
