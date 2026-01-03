@@ -4,17 +4,24 @@
     <title>My Games Lobby</title>
 </head>
 <body>
+    <!-- THIS SECTION IS HIDDEN UNTIL LOGIN -->
+<div id="games-section" style="display: none;">
     <h1>Welcome to My Games Collection</h1>
     <p>Click a link below to Play a Game:</p>
-    
     <ul>
         <li><a href="./site-a/">Go to Website A</a></li>
         <li><a href="./site-b/">Go to Website B</a></li>
         <li><a href="./site-c/">Go to Website C</a></li>
     </ul>
+    <hr>
+</div>
+    
     <!-- === ADD THIS SECTION FOR LOGIN/SIGNUP === -->
-<div id="auth-container">
+<!-- THIS SECTION IS VISIBLE WHEN LOGGED OUT -->
+<div id="login-section">
     <h2>Account Login & Sign Up</h2>
+    
+</div>
 
     <!-- SIGN UP FORM -->
     <h3>Create New Account</h3>
@@ -113,15 +120,24 @@ loginForm.addEventListener('submit', (event) => {
 });
 
 // 3. Monitor Login State (Show if user is logged in)
+// 3. Monitor Login State & Show/Hide Sections
 auth.onAuthStateChanged((user) => {
+    const loginSection = document.getElementById('login-section');
+    const gameSection = document.getElementById('games-section');
+    const userStatusDiv = document.getElementById('userStatus');
+
     if (user) {
-        // User IS signed in
+        // User IS signed in: SHOW GAMES, HIDE LOGIN
+        loginSection.style.display = 'none';   // Hide login forms
+        gameSection.style.display = 'block';   // Show game links
         userStatusDiv.innerHTML = `
-            <p><strong>Currently logged in as:</strong> ${user.email}</p>
+            <p><strong>Logged in as:</strong> ${user.email}</p>
             <button onclick="firebase.auth().signOut()">Log Out</button>
         `;
     } else {
-        // User is NOT signed in
+        // User is NOT signed in: SHOW LOGIN, HIDE GAMES
+        loginSection.style.display = 'block';  // Show login forms
+        gameSection.style.display = 'none';    // Hide game links
         userStatusDiv.innerHTML = `<p>No user is currently logged in.</p>`;
     }
 });
