@@ -12,5 +12,118 @@
         <li><a href="./site-b/">Go to Website B</a></li>
         <li><a href="./site-c/">Go to Website C</a></li>
     </ul>
+    <!-- === ADD THIS SECTION FOR LOGIN/SIGNUP === -->
+<div id="auth-container">
+    <h2>Account Login & Sign Up</h2>
+
+    <!-- SIGN UP FORM -->
+    <h3>Create New Account</h3>
+    <form id="signupForm">
+        <input type="email" id="signupEmail" placeholder="Email" required><br>
+        <input type="password" id="signupPassword" placeholder="Password (min. 6 chars)" required><br>
+        <button type="submit">Sign Up</button>
+    </form>
+    <p id="signupMessage" style="color: blue;"></p>
+
+    <hr>
+
+    <!-- LOGIN FORM -->
+    <h3>Existing User Login</h3>
+    <form id="loginForm">
+        <input type="email" id="loginEmail" placeholder="Email" required><br>
+        <input type="password" id="loginPassword" placeholder="Password" required><br>
+        <button type="submit">Log In</button>
+    </form>
+    <p id="loginMessage" style="color: blue;"></p>
+
+    <!-- USER STATUS AREA -->
+    <div id="userStatus">
+        <p>No user is currently logged in.</p>
+    </div>
+</div>
+<!-- === END OF AUTH SECTION === -->
+    <!-- Add the Firebase SDKs from CDN -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js"></script>
+
+<script>
+  // Your web app's Firebase configuration (COPY YOUR OWN FROM THE CONSOLE)
+  const firebaseConfig = {
+    apiKey: "AIzaSyAh8vyJXO2QX2XUas0hZwMqcOxunuBj6wA",
+    authDomain: "fun-games-login.firebaseapp.com",
+    projectId: "fun-games-login",
+    storageBucket: "fun-games-login.firebasestorage.app",
+    messagingSenderId: "417995137812",
+    appId: "1:417995137812:web:6a71a166d762b2cb679801"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  
+  // Make the auth service available (this is the older, simpler syntax)
+  const auth = firebase.auth();
+    // === ADD THIS CODE AFTER YOUR 'const auth = ...' LINE ===
+
+// Get references to form elements
+const signupForm = document.getElementById('signupForm');
+const loginForm = document.getElementById('loginForm');
+const userStatusDiv = document.getElementById('userStatus');
+
+// 1. Handle NEW USER SIGN UP
+signupForm.addEventListener('submit', (event) => {
+    event.preventDefault(); // Stop page reload
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+    const messageEl = document.getElementById('signupMessage');
+
+    auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            // Success
+            messageEl.style.color = 'green';
+            messageEl.textContent = `Account created for ${email}!`;
+            signupForm.reset();
+        })
+        .catch((error) => {
+            // Handle Errors
+            messageEl.style.color = 'red';
+            messageEl.textContent = `Sign-up failed: ${error.message}`;
+        });
+});
+
+// 2. Handle EXISTING USER LOGIN
+loginForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const messageEl = document.getElementById('loginMessage');
+
+    auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+            // Success
+            messageEl.style.color = 'green';
+            messageEl.textContent = `Welcome back, ${email}!`;
+            loginForm.reset();
+        })
+        .catch((error) => {
+            // Handle Errors
+            messageEl.style.color = 'red';
+            messageEl.textContent = `Login failed: ${error.message}`;
+        });
+});
+
+// 3. Monitor Login State (Show if user is logged in)
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        // User IS signed in
+        userStatusDiv.innerHTML = `
+            <p><strong>Currently logged in as:</strong> ${user.email}</p>
+            <button onclick="firebase.auth().signOut()">Log Out</button>
+        `;
+    } else {
+        // User is NOT signed in
+        userStatusDiv.innerHTML = `<p>No user is currently logged in.</p>`;
+    }
+});
+</script>
 </body>
 </html>
