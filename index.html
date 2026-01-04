@@ -2,145 +2,185 @@
 <html>
 <head>
     <title>My Games Lobby</title>
+    <!-- Basic CSS for Styling -->
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; }
+        h1, h2, h3 { color: #333; }
+        #login-section, #games-section { border: 1px solid #ccc; padding: 25px; border-radius: 10px; margin-bottom: 25px; background-color: #f9f9f9; }
+        input { display: block; width: 95%; padding: 12px; margin: 10px 0; border: 1px solid #aaa; border-radius: 5px; }
+        button { background-color: #4285f4; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        button:hover { background-color: #2a75f3; }
+        hr { border: 0; height: 1px; background: #ddd; margin: 25px 0; }
+        #userStatus { margin-top: 20px; padding: 15px; background-color: #e8f0fe; border-radius: 5px; }
+        .spinner { display: none; border: 4px solid #f3f3f3; border-top: 4px solid #4285f4; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 15px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error { color: #d32f2f; }
+        .success { color: #388e3c; }
+        .info-text { font-size: 0.9em; color: #666; margin-top: 5px; }
+    </style>
 </head>
 <body>
-    <!-- THIS SECTION IS HIDDEN UNTIL LOGIN -->
-<div id="games-section" style="display: none;">
-    <h1>Welcome to My Games Collection</h1>
-    <p>Click a link below to Play a Game:</p>
-    <ul>
-        <li><a href="./site-a/">Go to Website A</a></li>
-        <li><a href="./site-b/">Go to Website B</a></li>
-        <li><a href="./site-c/">Go to Website C</a></li>
-             </ul>
-    <hr>
-</div>
-    
-    <!-- === ADD THIS SECTION FOR LOGIN/SIGNUP === -->
-<!-- THIS SECTION IS VISIBLE WHEN LOGGED OUT -->
-<div id="login-section">
-    <h2>Account Login & Sign Up</h2>
-    
-</div>
 
-    <!-- SIGN UP FORM -->
-    <h3>Create New Account</h3>
-    <form id="signupForm">
-        <input type="email" id="signupEmail" placeholder="Email" required><br>
-        <input type="password" id="signupPassword" placeholder="Password (min. 6 chars)" required><br>
-        <button type="submit">Sign Up</button>
-    </form>
-    <p id="signupMessage" style="color: blue;"></p>
-
-    <hr>
-
-    <!-- LOGIN FORM -->
-    <h3>Existing User Login</h3>
-    <form id="loginForm">
-        <input type="email" id="loginEmail" placeholder="Email" required><br>
-        <input type="password" id="loginPassword" placeholder="Password" required><br>
-        <button type="submit">Log In</button>
-    </form>
-    <p id="loginMessage" style="color: blue;"></p>
-
-    <!-- USER STATUS AREA -->
-    <div id="userStatus">
-        <p>No user is currently logged in.</p>
+    <!-- GAME LINKS (Hidden until login) -->
+    <div id="games-section" style="display: none;">
+        <h1>Welcome to My Games Collection</h1>
+        <p>Click a link below to Play a Game:</p>
+        <ul>
+            <li><a href="./site-a/">Go to Website A</a></li>
+            <li><a href="./site-b/">Go to Website B</a></li>
+            <li><a href="./site-c/">Go to Website C</a></li>
+        </ul>
+        <hr>
     </div>
-</div>
-<!-- === END OF AUTH SECTION === -->
-    <!-- Add the Firebase SDKs from CDN -->
-<!-- REPLACE WITH THESE CORRECT SDK SCRIPTS -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-<script>
-  // Your web app's Firebase configuration (COPY YOUR OWN FROM THE CONSOLE)
-  const firebaseConfig = {
-    apiKey: "AIzaSyAh8vyJXO2QX2XUas0hZwMqcOxunuBj6wA",
-    authDomain: "fun-games-login.firebaseapp.com",
-    projectId: "fun-games-login",
-    storageBucket: "fun-games-login.firebasestorage.app",
-    messagingSenderId: "417995137812",
-    appId: "1:417995137812:web:6a71a166d762b2cb679801"
-  };
+    <!-- LOGIN & SIGNUP FORMS (Visible when logged out) -->
+    <div id="login-section">
+        <h2>Account Login & Sign Up</h2>
 
-  // Initialize Firebase
-  firebase.initializeApp(firebaseConfig);
-  
-  // Make the auth service available (this is the older, simpler syntax)
-  const auth = firebase.auth();
-    // === ADD THIS CODE AFTER YOUR 'const auth = ...' LINE ===
+        <!-- SIGN UP FORM -->
+        <h3>Create New Account</h3>
+        <form id="signupForm">
+            <input type="email" id="signupEmail" placeholder="Email" required>
+            <input type="password" id="signupPassword" placeholder="Password (min. 6 characters)" required>
+            <div class="spinner" id="signupSpinner"></div>
+            <button type="submit" id="signupButton">Sign Up</button>
+        </form>
+        <p id="signupMessage" class="info-text"></p>
 
-// Get references to form elements
-const signupForm = document.getElementById('signupForm');
-const loginForm = document.getElementById('loginForm');
-const userStatusDiv = document.getElementById('userStatus');
+        <hr>
 
-// 1. Handle NEW USER SIGN UP
-signupForm.addEventListener('submit', (event) => {
-    event.preventDefault(); // Stop page reload
-    const email = document.getElementById('signupEmail').value;
-    const password = document.getElementById('signupPassword').value;
-    const messageEl = document.getElementById('signupMessage');
+        <!-- LOGIN FORM -->
+        <h3>Existing User Login</h3>
+        <form id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Email" required>
+            <input type="password" id="loginPassword" placeholder="Password" required>
+            <div class="spinner" id="loginSpinner"></div>
+            <button type="submit" id="loginButton">Log In</button>
+            <!-- FORGOT PASSWORD LINK -->
+            <p class="info-text"><a href="#" onclick="resetPassword()">Forgot your password?</a></p>
+        </form>
+        <p id="loginMessage" class="info-text"></p>
 
-    auth.createUserWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            // Success
-            messageEl.style.color = 'green';
-            messageEl.textContent = `Account created for ${email}!`;
-            signupForm.reset();
-        })
-        .catch((error) => {
-            // Handle Errors
-            messageEl.style.color = 'red';
-            messageEl.textContent = `Sign-up failed: ${error.message}`;
+        <!-- USER STATUS AREA -->
+        <div id="userStatus">
+            <p>No user is currently logged in.</p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAh8vyJXO2QX2XUas0hZwMqcOxunuBj6wA",
+            authDomain: "fun-games-login.firebaseapp.com",
+            projectId: "fun-games-login",
+            storageBucket: "fun-games-login.firebasestorage.app",
+            messagingSenderId: "417995137812",
+            appId: "1:417995137812:web:6a71a166d762b2cb679801"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+
+        // Get DOM elements
+        const signupForm = document.getElementById('signupForm');
+        const loginForm = document.getElementById('loginForm');
+        const userStatusDiv = document.getElementById('userStatus');
+
+        // --- HELPER: Show/Hide Loading Spinner ---
+        function toggleSpinner(buttonId, spinnerId, show) {
+            document.getElementById(buttonId).disabled = show;
+            document.getElementById(spinnerId).style.display = show ? 'block' : 'none';
+        }
+
+        // 1. HANDLE SIGN UP
+        signupForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const messageEl = document.getElementById('signupMessage');
+
+            toggleSpinner('signupButton', 'signupSpinner', true);
+            messageEl.textContent = '';
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(() => {
+                    messageEl.textContent = `Account created for ${email}!`;
+                    messageEl.className = 'success';
+                    signupForm.reset();
+                })
+                .catch((error) => {
+                    messageEl.textContent = `Sign-up failed: ${error.message}`;
+                    messageEl.className = 'error';
+                })
+                .finally(() => {
+                    toggleSpinner('signupButton', 'signupSpinner', false);
+                });
         });
-});
 
-// 2. Handle EXISTING USER LOGIN
-loginForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-    const messageEl = document.getElementById('loginMessage');
+        // 2. HANDLE LOGIN
+        loginForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const messageEl = document.getElementById('loginMessage');
 
-    auth.signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-            // Success
-            messageEl.style.color = 'green';
-            messageEl.textContent = `Welcome back, ${email}!`;
-            loginForm.reset();
-        })
-        .catch((error) => {
-            // Handle Errors
-            messageEl.style.color = 'red';
-            messageEl.textContent = `Login failed: ${error.message}`;
+            toggleSpinner('loginButton', 'loginSpinner', true);
+            messageEl.textContent = '';
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    messageEl.textContent = `Welcome back!`;
+                    messageEl.className = 'success';
+                    loginForm.reset();
+                })
+                .catch((error) => {
+                    messageEl.textContent = `Login failed: ${error.message}`;
+                    messageEl.className = 'error';
+                })
+                .finally(() => {
+                    toggleSpinner('loginButton', 'loginSpinner', false);
+                });
         });
-});
 
-// 3. Monitor Login State (Show if user is logged in)
-// 3. Monitor Login State & Show/Hide Sections
-auth.onAuthStateChanged((user) => {
-    const loginSection = document.getElementById('login-section');
-    const gameSection = document.getElementById('games-section');
-    const userStatusDiv = document.getElementById('userStatus');
+        // 3. PASSWORD RESET FUNCTION
+        window.resetPassword = function() {
+            const email = prompt('Enter your email to reset your password:');
+            if (email) {
+                auth.sendPasswordResetEmail(email)
+                    .then(() => {
+                        alert(`Password reset email sent to ${email}. Please check your inbox.`);
+                    })
+                    .catch((error) => {
+                        alert(`Error: ${error.message}`);
+                    });
+            }
+        };
 
-    if (user) {
-        // User IS signed in: SHOW GAMES, HIDE LOGIN
-        loginSection.style.display = 'none';   // Hide login forms
-        gameSection.style.display = 'block';   // Show game links
-        userStatusDiv.innerHTML = `
-            <p><strong>Logged in as:</strong> ${user.email}</p>
-            <button onclick="firebase.auth().signOut()">Log Out</button>
-        `;
-    } else {
-        // User is NOT signed in: SHOW LOGIN, HIDE GAMES
-        loginSection.style.display = 'block';  // Show login forms
-        gameSection.style.display = 'none';    // Hide game links
-        userStatusDiv.innerHTML = `<p>No user is currently logged in.</p>`;
-    }
-});
-</script>
+        // 4. MONITOR LOGIN STATE & SHOW/HIDE SECTIONS
+        auth.onAuthStateChanged((user) => {
+            const loginSection = document.getElementById('login-section');
+            const gameSection = document.getElementById('games-section');
+
+            if (user) {
+                // User IS signed in: SHOW GAMES, HIDE LOGIN
+                loginSection.style.display = 'none';
+                gameSection.style.display = 'block';
+                userStatusDiv.innerHTML = `
+                    <p><strong>Logged in as:</strong> ${user.email}</p>
+                    <button onclick="firebase.auth().signOut()">Log Out</button>
+                `;
+            } else {
+                // User is NOT signed in: SHOW LOGIN, HIDE GAMES
+                loginSection.style.display = 'block';
+                gameSection.style.display = 'none';
+                userStatusDiv.innerHTML = `<p>No user is currently logged in.</p>`;
+            }
+        });
+    </script>
 </body>
 </html>
