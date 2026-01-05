@@ -666,7 +666,13 @@
                     setTimeout(() => {
                         document.getElementById('passwordResetModal').style.display = 'none';
                     }, 3000);
-                })
+                     })
+                    // In your password reset function, you can add:
+auth.sendPasswordResetEmail(email, {
+  url: 'https://your-website.com/login', // Where users go after reset
+  handleCodeInApp: false
+})
+               
                 .catch((error) => {
                     messageEl.textContent = `Error: ${error.message}`;
                     messageEl.className = 'message error-message';
