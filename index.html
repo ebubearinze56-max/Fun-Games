@@ -658,28 +658,27 @@
             messageEl.textContent = '';
             messageEl.className = 'message';
 
-            auth.sendPasswordResetEmail(email)
-                .then(() => {
-                    messageEl.textContent = `Password reset email sent to ${email}. Please check your inbox.`;
-                    messageEl.className = 'message success-message';
-                    e.target.reset();
-                    setTimeout(() => {
-                        document.getElementById('passwordResetModal').style.display = 'none';
-                    }, 3000);
-                     })
-                    // In your password reset function, you can add:
+// CORRECTED Password Reset Function
 auth.sendPasswordResetEmail(email, {
-  url: 'https://ebubearinze56-max.github.io/Fun-Games/', // Where users go after reset
-  handleCodeInApp: false
+  // 👇 This URL must match EXACTLY where your game is hosted
+  url: 'https://ebubearinze56-max.github.io/Fun-Games/', // Your GitHub Pages URL
+  handleCodeInApp: false // Opens in browser, not in-app
 })
-               
-                .catch((error) => {
-                    messageEl.textContent = `Error: ${error.message}`;
-                    messageEl.className = 'message error-message';
-                })
-                .finally(() => {
-                    spinner.style.display = 'none';
-                });
+.then(() => {
+  messageEl.textContent = `Password reset email sent to ${email}. Please check your inbox (and spam folder). The link will expire in 1 hour.`;
+  messageEl.className = 'message success-message';
+  e.target.reset();
+  setTimeout(() => {
+    document.getElementById('passwordResetModal').style.display = 'none';
+  }, 4000);
+})
+.catch((error) => {
+  messageEl.textContent = `Error: ${error.message}`;
+  messageEl.className = 'message error-message';
+})
+.finally(() => {
+  spinner.style.display = 'none';
+});
         });
 
         // Logout
