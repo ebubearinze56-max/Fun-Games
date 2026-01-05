@@ -47,7 +47,7 @@
             color: transparent;
         }
         #userInfoPanel {
-            display: flex;
+            display: none; /* Hidden by default */
             align-items: center;
             gap: 20px;
         }
@@ -80,18 +80,18 @@
             .main-container { flex-direction: column; }
         }
 
-        /* === Game Preview Section === */
-        .game-preview-section {
+        /* === GAME SECTION (Hidden by default) === */
+        .game-section {
             flex: 2;
             background: rgba(20, 20, 50, 0.7);
             border-radius: 12px;
             padding: 20px;
             border: 2px solid var(--game-accent);
             box-shadow: 0 0 25px rgba(74, 158, 255, 0.4);
-            display: flex;
+            display: none; /* HIDDEN UNTIL LOGIN */
             flex-direction: column;
         }
-        .game-preview-section h2 {
+        .game-section h2 {
             text-align: center;
             margin-bottom: 20px;
             color: var(--player-color);
@@ -120,27 +120,8 @@
             background-color: #111133;
             touch-action: none;
         }
-        /* Login Blur Overlay */
-        #loginRequiredOverlay {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(10, 10, 30, 0.85);
-            backdrop-filter: blur(4px);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 5;
-            text-align: center;
-        }
-        #loginRequiredOverlay h3 {
-            color: var(--player-color);
-            margin-bottom: 15px;
-            font-size: 1.8rem;
-        }
 
-        /* === Auth Forms Section === */
+        /* === AUTH SECTION (Visible by default) === */
         .auth-section {
             flex: 1;
             min-width: 350px;
@@ -148,7 +129,10 @@
             border-radius: 12px;
             padding: 25px;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            display: block; /* VISIBLE BY DEFAULT */
         }
+
+        /* Form Elements */
         .auth-form-box {
             background-color: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
@@ -161,8 +145,6 @@
             padding-bottom: 10px;
             border-bottom: 1px solid rgba(74, 158, 255, 0.5);
         }
-
-        /* Form Elements */
         .form-group {
             margin-bottom: 20px;
         }
@@ -202,14 +184,6 @@
         .btn:hover {
             background-color: var(--primary-dark);
             transform: translateY(-2px);
-        }
-        .btn-secondary {
-            background-color: transparent;
-            border: 2px solid var(--game-accent);
-            color: var(--game-accent);
-        }
-        .btn-secondary:hover {
-            background-color: rgba(74, 158, 255, 0.1);
         }
 
         /* Messages & Spinners */
@@ -283,7 +257,7 @@
             line-height: 1;
         }
 
-        /* === Game UI (Copied from your original styles) === */
+        /* === Game UI (SHOWN WHEN LOGGED IN) === */
         #uiPanel {
             background-color: rgba(10, 10, 40, 0.9);
             padding: 12px 20px;
@@ -350,6 +324,62 @@
             background-color: var(--game-accent);
             color: #111133;
         }
+
+        /* Game Overlays */
+        #startOverlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 30, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        #pauseOverlay {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 30, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .overlayTitle {
+            font-size: 48px;
+            color: var(--player-color);
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 255, 52, 0.7);
+        }
+        .overlayText {
+            font-size: 20px;
+            margin-bottom: 30px;
+            max-width: 80%;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .startBtn {
+            padding: 15px 40px;
+            background-color: var(--game-accent);
+            color: #111133;
+            border: none;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(74, 158, 255, 0.7);
+            transition: all 0.3s;
+            margin: 10px;
+        }
+        .startBtn:hover {
+            background-color: var(--player-color);
+            box-shadow: 0 0 20px rgba(255, 255, 52, 0.9);
+            transform: scale(1.05);
+        }
+
         /* Mobile Controls */
         #mobileControls { display: none; }
         @media (hover: none) and (pointer: coarse) {
@@ -379,7 +409,7 @@
     <!-- Header with User Info -->
     <header class="site-header">
         <h1>🚀 DANGER DASH</h1>
-        <div id="userInfoPanel" style="display: none;">
+        <div id="userInfoPanel">
             <span id="userEmailDisplay"></span>
             <button id="logoutButton">Log Out</button>
         </div>
@@ -387,20 +417,13 @@
 
     <!-- Main Content Area -->
     <div class="main-container">
-        <!-- Game Preview / Play Area -->
-        <section class="game-preview-section">
+        <!-- GAME SECTION - HIDDEN until login -->
+        <section class="game-section" id="gameSection">
             <h2>Navigate. Dodge. Survive.</h2>
             <p class="game-description">Control your spaceship through a dangerous asteroid field. Jump over obstacles, avoid collisions, and beat your high score!</p>
 
             <div class="game-canvas-container">
                 <canvas id="gameCanvas" width="800" height="500"></canvas>
-
-                <!-- Overlay shown when NOT logged in -->
-                <div id="loginRequiredOverlay">
-                    <h3>Login to Play</h3>
-                    <p>You need to log in to start the game and save your high scores.</p>
-                    <p>Use the form on the right to create an account or sign in.</p>
-                </div>
 
                 <!-- Game UI Panel -->
                 <div id="uiPanel">
@@ -420,6 +443,21 @@
                     </div>
                 </div>
 
+                <!-- Start Game Overlay -->
+                <div id="startOverlay">
+                    <div class="overlayTitle">DANGER DASH</div>
+                    <div class="overlayText">Navigate through space, avoid obstacles, and survive as long as possible!</div>
+                    <button id="startBtn" class="startBtn">START GAME</button>
+                </div>
+
+                <!-- Pause Overlay -->
+                <div id="pauseOverlay">
+                    <div class="overlayTitle">GAME PAUSED</div>
+                    <div class="overlayText">Press P to resume or use the buttons below.</div>
+                    <button id="resumeBtn" class="startBtn">RESUME GAME</button>
+                    <button id="restartFromPauseBtn" class="startBtn" style="background-color: #ff3333;">RESTART GAME</button>
+                </div>
+
                 <!-- Mobile Controls -->
                 <div id="mobileControls">
                     <div id="jumpBtn" style="width: 70px; height: 70px; border-radius: 50%; background-color: rgba(255, 255, 52, 0.9); display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; color: #111133;">↑</div>
@@ -427,8 +465,8 @@
             </div>
         </section>
 
-        <!-- Authentication Section -->
-        <aside class="auth-section">
+        <!-- AUTH SECTION - VISIBLE by default -->
+        <aside class="auth-section" id="authSection">
             <!-- Sign Up Form -->
             <div class="auth-form-box">
                 <h3>Create New Account</h3>
@@ -482,7 +520,7 @@
         </aside>
     </div>
 
-    <!-- Password Reset Modal (Hidden by Default) -->
+    <!-- Password Reset Modal -->
     <div id="passwordResetModal" class="modal-backdrop">
         <div class="modal-content">
             <button id="closeModal">&times;</button>
@@ -511,7 +549,7 @@
 
     <script>
         // ========================================
-        // FIREBASE SETUP & AUTHENTICATION
+        // FIREBASE SETUP
         // ========================================
         const firebaseConfig = {
             apiKey: "AIzaSyAh8vyJXO2QX2XUas0hZwMqcOxunuBj6wA",
@@ -523,6 +561,27 @@
         };
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
+
+        // ========================================
+        // GAME VARIABLES
+        // ========================================
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        let gameState = "start"; // "start", "playing", "paused", "gameOver"
+        let difficulty = "easy";
+        let score = 0;
+        let frame = 0;
+        let gameSpeed = 1;
+        let obstacles = [];
+        const player = {
+            x: 80, y: 350, width: 40, height: 60,
+            velocityY: 0, grounded: true, color: "#ffff34"
+        };
+        const difficultySettings = {
+            easy: { obstacleSpeed: 5, obstacleFrequency: 70, gravity: 0.8, jumpStrength: -20 },
+            medium: { obstacleSpeed: 7, obstacleFrequency: 50, gravity: 1.0, jumpStrength: -22 },
+            hard: { obstacleSpeed: 9, obstacleFrequency: 35, gravity: 1.2, jumpStrength: -24 }
+        };
 
         // ========================================
         // AUTHENTICATION FUNCTIONS
@@ -568,7 +627,7 @@
 
             auth.signInWithEmailAndPassword(email, password)
                 .then(() => {
-                    messageEl.textContent = `Login successful! Welcome back.`;
+                    messageEl.textContent = `Login successful! Loading game...`;
                     messageEl.className = 'message success-message';
                     e.target.reset();
                 })
@@ -623,63 +682,237 @@
         });
 
         // ========================================
-        // AUTH STATE MONITOR & UI UPDATES
+        // AUTH STATE MONITOR - CRITICAL FIX
         // ========================================
         auth.onAuthStateChanged((user) => {
-            const loginOverlay = document.getElementById('loginRequiredOverlay');
+            const gameSection = document.getElementById('gameSection');
+            const authSection = document.getElementById('authSection');
             const userInfoPanel = document.getElementById('userInfoPanel');
             const userEmailDisplay = document.getElementById('userEmailDisplay');
 
             if (user) {
-                // User is logged IN
-                loginOverlay.style.display = 'none';
+                // User is logged IN: SHOW GAME, HIDE LOGIN
+                gameSection.style.display = 'flex';
+                authSection.style.display = 'none';
                 userInfoPanel.style.display = 'flex';
                 userEmailDisplay.textContent = user.email;
-
-                // Start game if it's not already running
-                if (gameState === 'start') {
-                    startGame();
+                
+                // Initialize game if not already running
+                if (gameState === "start") {
+                    resetGame();
                 }
             } else {
-                // User is logged OUT
-                loginOverlay.style.display = 'flex';
+                // User is logged OUT: SHOW LOGIN, HIDE GAME
+                gameSection.style.display = 'none';
+                authSection.style.display = 'block';
                 userInfoPanel.style.display = 'none';
-
-                // Stop and reset the game
-                if (gameState === 'playing' || gameState === 'paused') {
-                    restartGame();
-                }
-                gameState = 'start';
+                
+                // Reset game state
+                gameState = "start";
+                score = 0;
+                obstacles = [];
             }
         });
 
         // ========================================
-        // GAME ENGINE CODE (from your original)
+        // GAME FUNCTIONS
         // ========================================
-        // [Your full Danger Dash game code goes here]
-        // This includes all the canvas drawing, game state, obstacle generation,
-        // player physics, high score management, and event listeners.
-        // I've kept your game mechanics intact while integrating it with the new UI.
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        let gameState = "start"; // "start", "playing", "paused", "gameOver"
-        let difficulty = "easy";
-        let score = 0;
-        let frame = 0;
-        let gameSpeed = 1;
-        let obstacles = [];
-        const player = {
-            x: 80, y: 350, width: 40, height: 60,
-            velocityY: 0, grounded: true, color: "#ffff34"
-        };
-        const difficultySettings = {
-            easy: { obstacleSpeed: 5, obstacleFrequency: 70, gravity: 0.8, jumpStrength: -20 },
-            medium: { obstacleSpeed: 7, obstacleFrequency: 50, gravity: 1.0, jumpStrength: -22 },
-            hard: { obstacleSpeed: 9, obstacleFrequency: 35, gravity: 1.2, jumpStrength: -24 }
-        };
-        // [Remaining game code...]
-        // Note: For brevity, I haven't pasted the entire 400+ lines of game logic here,
-        // but your original game code would be inserted at this point.
+        function resetGame() {
+            gameState = "start";
+            score = 0;
+            frame = 0;
+            obstacles = [];
+            gameSpeed = 1;
+            player.y = 350;
+            player.velocityY = 0;
+            player.grounded = true;
+            
+            document.getElementById('scoreDisplay').textContent = "Score: 0";
+            document.getElementById('startOverlay').style.display = 'flex';
+            document.getElementById('pauseOverlay').style.display = 'none';
+        }
+
+        function startGame() {
+            gameState = "playing";
+            document.getElementById('startOverlay').style.display = 'none';
+            update();
+        }
+
+        function togglePause() {
+            if (gameState === "playing") {
+                gameState = "paused";
+                document.getElementById('pauseOverlay').style.display = 'flex';
+            } else if (gameState === "paused") {
+                gameState = "playing";
+                document.getElementById('pauseOverlay').style.display = 'none';
+                update();
+            }
+        }
+
+        function createObstacle() {
+            const settings = difficultySettings[difficulty];
+            const height = 40 + Math.random() * 30;
+            
+            obstacles.push({
+                x: canvas.width,
+                y: canvas.height - height,
+                width: 30 + Math.random() * 40,
+                height: height,
+                color: "#ff3333",
+                passed: false
+            });
+        }
+
+        function update() {
+            if (gameState !== "playing") return;
+            
+            frame++;
+            
+            // Clear canvas
+            ctx.fillStyle = "#111133";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ground
+            ctx.fillStyle = "#333355";
+            ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
+            
+            // Player physics
+            const settings = difficultySettings[difficulty];
+            player.velocityY += settings.gravity;
+            player.y += player.velocityY;
+            
+            // Ground collision
+            if (player.y + player.height >= canvas.height - 10) {
+                player.y = canvas.height - player.height - 10;
+                player.velocityY = 0;
+                player.grounded = true;
+            }
+            
+            // Draw player
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // Generate obstacles
+            if (frame % Math.floor(settings.obstacleFrequency / gameSpeed) === 0) {
+                createObstacle();
+            }
+            
+            // Update obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                obs.x -= settings.obstacleSpeed * gameSpeed;
+                
+                // Check if player passed obstacle
+                if (!obs.passed && obs.x + obs.width < player.x) {
+                    obs.passed = true;
+                    score += 10;
+                }
+                
+                // Collision detection
+                if (
+                    player.x < obs.x + obs.width &&
+                    player.x + player.width > obs.x &&
+                    player.y < obs.y + obs.height &&
+                    player.y + player.height > obs.y
+                ) {
+                    gameOver();
+                    return;
+                }
+                
+                // Remove off-screen obstacles
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                }
+                
+                // Draw obstacle
+                ctx.fillStyle = obs.color;
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+            }
+            
+            // Update score
+            score += 0.1;
+            document.getElementById('scoreDisplay').textContent = "Score: " + Math.floor(score);
+            
+            // Draw score on canvas
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 24px Arial";
+            ctx.fillText("SCORE: " + Math.floor(score), 20, 40);
+            
+            // Continue game loop
+            requestAnimationFrame(update);
+        }
+
+        function gameOver() {
+            gameState = "gameOver";
+            
+            // Draw game over screen
+            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = "#ffff34";
+            ctx.font = "bold 48px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
+            
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "28px Arial";
+            ctx.fillText("Score: " + Math.floor(score), canvas.width / 2, canvas.height / 2 + 30);
+            
+            ctx.fillStyle = "#ffff34";
+            ctx.font = "18px Arial";
+            ctx.fillText("Click START to play again", canvas.width / 2, canvas.height / 2 + 80);
+            ctx.textAlign = "start";
+            
+            // Reset after 3 seconds
+            setTimeout(() => {
+                document.getElementById('startOverlay').style.display = 'flex';
+                gameState = "start";
+            }, 3000);
+        }
+
+        // ========================================
+        // GAME EVENT LISTENERS
+        // ========================================
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('pauseBtn').addEventListener('click', togglePause);
+        document.getElementById('resumeBtn').addEventListener('click', togglePause);
+        document.getElementById('restartBtn').addEventListener('click', resetGame);
+        document.getElementById('restartFromPauseBtn').addEventListener('click', resetGame);
+        
+        document.getElementById('easyBtn').addEventListener('click', () => {
+            difficulty = "easy";
+            document.querySelectorAll('.difficultyBtn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('easyBtn').classList.add('active');
+        });
+        document.getElementById('mediumBtn').addEventListener('click', () => {
+            difficulty = "medium";
+            document.querySelectorAll('.difficultyBtn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('mediumBtn').classList.add('active');
+        });
+        document.getElementById('hardBtn').addEventListener('click', () => {
+            difficulty = "hard";
+            document.querySelectorAll('.difficultyBtn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('hardBtn').classList.add('active');
+        });
+
+        // Keyboard controls
+        document.addEventListener("keydown", (e) => {
+            if (gameState === "playing" && player.grounded && (e.code === "Space" || e.code === "ArrowUp")) {
+                player.velocityY = difficultySettings[difficulty].jumpStrength;
+                player.grounded = false;
+            }
+            if (e.code === "KeyP") togglePause();
+            if (e.code === "KeyR") resetGame();
+            if (e.code === "Enter" && gameState === "start") startGame();
+        });
+
+        // Mobile jump button
+        document.getElementById('jumpBtn')?.addEventListener('click', () => {
+            if (gameState === "playing" && player.grounded) {
+                player.velocityY = difficultySettings[difficulty].jumpStrength;
+                player.grounded = false;
+            }
+        });
     </script>
 </body>
 </html>
