@@ -641,43 +641,42 @@
         });
 
         // Password Reset
-        document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById('passwordResetModal').style.display = 'flex';
-        });
-        document.getElementById('closeModal').addEventListener('click', () => {
-            document.getElementById('passwordResetModal').style.display = 'none';
-        });
-        document.getElementById('passwordResetForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = document.getElementById('resetEmail').value;
-            const messageEl = document.getElementById('resetMessage');
-            const spinner = document.getElementById('resetSpinner');
+// In your game website's script.js - HYBRID RESET FUNCTION
+document.getElementById('passwordResetForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('resetEmail').value;
+  const messageEl = document.getElementById('resetMessage');
+  const spinner = document.getElementById('resetSpinner');
 
-            spinner.style.display = 'block';
-            messageEl.textContent = '';
-            messageEl.className = 'message';
+  spinner.style.display = 'block';
+  messageEl.textContent = '';
 
-// CORRECTED Password Reset Function
-auth.sendPasswordResetEmail(email, {
-  // 👇 This URL must match EXACTLY where your game is hosted
-  url: 'https://ebubearinze56-max.github.io/Fun-Games/', // Your GitHub Pages URL
-  handleCodeInApp: false // Opens in browser, not in-app
-})
-.then(() => {
-  messageEl.textContent = `Password reset email sent to ${email}. Please check your inbox (and spam folder). The link will expire in 1 hour.`;
-  messageEl.className = 'message success-message';
-  e.target.reset();
-  setTimeout(() => {
-    document.getElementById('passwordResetModal').style.display = 'none';
-  }, 4000);
-})
-.catch((error) => {
-  messageEl.textContent = `Error: ${error.message}`;
-  messageEl.className = 'message error-message';
-})
-.finally(() => {
-  spinner.style.display = 'none';
+  try {
+    // 1. FIRST, log the request to YOUR backend
+    const logResponse = await fetch('http://localhost:3000/send-reset-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    });
+    const logResult = await logResponse.json();
+    
+    if (!logResponse.ok) throw new Error('Backend logging failed');
+
+    // 2. If logging succeeded, use the STANDARD Firebase method
+    await auth.sendPasswordResetEmail(email); // 👈 This is the standard, reliable method
+    
+    // 3. Show success
+    messageEl.textContent = `Password reset email sent to ${email}. ${logResult.message}`;
+    messageEl.className = 'success-message';
+    e.target.reset(); // Clear the form
+
+  } catch (error) {
+    console.error('Full error:', error);
+    messageEl.textContent = `Error: ${error.message}`;
+    messageEl.className = 'error-message';
+  } finally {
+    spinner.style.display = 'none';
+  }
 });
         });
 
