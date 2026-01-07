@@ -639,7 +639,8 @@
                     spinner.style.display = 'none';
                 });
         });
-              // Password Reset
+
+        // Password Reset
         document.getElementById('passwordResetForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('resetEmail').value;
@@ -674,14 +675,13 @@
                 messageEl.className = 'error-message';
             } finally {
                 spinner.style.display = 'none';
-    
+            }
         });
 
         // Logout - ONLY ONE TIME!
         document.getElementById('logoutButton').addEventListener('click', () => {
             auth.signOut();
         });
-
 
         // ========================================
         // AUTH STATE MONITOR - CRITICAL FIX
