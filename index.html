@@ -501,9 +501,23 @@
                 </form>
                 <div id="loginSpinner" class="spinner"></div>
                 <div id="loginMessage" class="message"></div>
-                <p class="info-text">
-                    <a href="#" id="forgotPasswordLink" style="color: var(--game-accent); text-decoration: none;">Forgot your password? Reset it here.</a>
-                </p>
+                // Open password reset modal
+document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('passwordResetModal').style.display = 'flex';
+});
+
+// Close modal
+document.getElementById('closeModal').addEventListener('click', () => {
+    document.getElementById('passwordResetModal').style.display = 'none';
+});
+
+// Close modal when clicking outside
+document.getElementById('passwordResetModal').addEventListener('click', (e) => {
+    if (e.target.id === 'passwordResetModal') {
+        document.getElementById('passwordResetModal').style.display = 'none';
+    }
+});
             </div>
 
             <!-- Game Instructions -->
