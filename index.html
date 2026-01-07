@@ -485,40 +485,25 @@
                 <div id="signupMessage" class="message"></div>
             </div>
 
-            <!-- Login Form -->
-            <div class="auth-form-box">
-                <h3>Login to Your Account</h3>
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="loginEmail">Email Address</label>
-                        <input type="email" class="form-control" id="loginEmail" placeholder="you@example.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Password</label>
-                        <input type="password" class="form-control" id="loginPassword" placeholder="••••••" required>
-                    </div>
-                    <button type="submit" class="btn">Log In</button>
-                </form>
-                <div id="loginSpinner" class="spinner"></div>
-                <div id="loginMessage" class="message"></div>
-                // Open password reset modal
-document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('passwordResetModal').style.display = 'flex';
-});
-
-// Close modal
-document.getElementById('closeModal').addEventListener('click', () => {
-    document.getElementById('passwordResetModal').style.display = 'none';
-});
-
-// Close modal when clicking outside
-document.getElementById('passwordResetModal').addEventListener('click', (e) => {
-    if (e.target.id === 'passwordResetModal') {
-        document.getElementById('passwordResetModal').style.display = 'none';
-    }
-});
-            </div>
+        <div class="auth-form-box">
+    <h3>Login to Your Account</h3>
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="loginEmail">Email Address</label>
+            <input type="email" class="form-control" id="loginEmail" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" class="form-control" id="loginPassword" placeholder="••••••" required>
+        </div>
+        <button type="submit" class="btn">Log In</button>
+    </form>
+    <div id="loginSpinner" class="spinner"></div>
+    <div id="loginMessage" class="message"></div>
+    <p class="info-text">
+        <a href="#" id="forgotPasswordLink" style="color: var(--game-accent); text-decoration: none;">Forgot your password? Reset it here.</a>
+    </p>
+</div>
 
             <!-- Game Instructions -->
             <div class="auth-form-box">
@@ -686,15 +671,41 @@ document.getElementById('passwordResetForm').addEventListener('submit', async (e
         spinner.style.display = 'none';
     }
 });
+// Logout - ONLY ONE TIME!
+document.getElementById('logoutButton').addEventListener('click', () => {
+    auth.signOut();
+});
 
-        // Logout - ONLY ONE TIME!
-        document.getElementById('logoutButton').addEventListener('click', () => {
-            auth.signOut();
-        });
+// ========================================
+// PASSWORD RESET MODAL CONTROLS
+// ========================================
 
-        // ========================================
-        // AUTH STATE MONITOR - CRITICAL FIX
-        // ========================================
+// Open password reset modal when "Forgot your password?" is clicked
+document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('passwordResetModal').style.display = 'flex';
+    // Clear any previous messages
+    document.getElementById('resetMessage').textContent = '';
+    document.getElementById('resetMessage').className = 'message';
+    // Clear the email field
+    document.getElementById('resetEmail').value = '';
+});
+
+// Close modal when X is clicked
+document.getElementById('closeModal').addEventListener('click', () => {
+    document.getElementById('passwordResetModal').style.display = 'none';
+});
+
+// Close modal when clicking outside
+document.getElementById('passwordResetModal').addEventListener('click', (e) => {
+    if (e.target.id === 'passwordResetModal') {
+        document.getElementById('passwordResetModal').style.display = 'none';
+    }
+});
+
+// ========================================
+// AUTH STATE MONITOR - CRITICAL FIX
+// ========================================
         auth.onAuthStateChanged((user) => {
             const gameSection = document.getElementById('gameSection');
             const authSection = document.getElementById('authSection');
