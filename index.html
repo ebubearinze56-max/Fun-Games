@@ -639,21 +639,49 @@
                     spinner.style.display = 'none';
                 });
         });
-        // Password Reset
+              // Password Reset
         document.getElementById('passwordResetForm').addEventListener('submit', async (e) => {
-            // ... correct reset code ...
-        });
-        // ====== THE FUNCTION ENDS HERE. DO NOT ADD AN EXTRA }); BELOW ======
+            e.preventDefault();
+            const email = document.getElementById('resetEmail').value;
+            const messageEl = document.getElementById('resetMessage');
+            const spinner = document.getElementById('resetSpinner');
 
-        // Logout  <-- ERROR STARTS HERE!
+            spinner.style.display = 'block';
+            messageEl.textContent = '';
+
+            try {
+                // 1. FIRST, log the request to YOUR backend
+                const logResponse = await fetch('http://localhost:3000/send-reset-link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+                const logResult = await logResponse.json();
+
+                if (!logResponse.ok) throw new Error('Backend logging failed');
+
+                // 2. If logging succeeded, use the STANDARD Firebase method
+                await auth.sendPasswordResetEmail(email);
+
+                // 3. Show success
+                messageEl.textContent = `Password reset email sent to ${email}. ${logResult.message}`;
+                messageEl.className = 'success-message';
+                e.target.reset();
+
+            } catch (error) {
+                console.error('Full error:', error);
+                messageEl.textContent = `Error: ${error.message}`;
+                messageEl.className = 'error-message';
+            } finally {
+                spinner.style.display = 'none';
+            }
+        });
+
+        // Logout - ONLY ONE TIME!
         document.getElementById('logoutButton').addEventListener('click', () => {
             auth.signOut();
-                });  // <-- EXTRA BRACE and semicolon!
-
-        // Logout  <-- DUPLICATE!
-        document.getElementById('logoutButton').addEventListener('click', () => {
-            auth.signOut();
         });
+
 
         // ========================================
         // AUTH STATE MONITOR - CRITICAL FIX
