@@ -185,6 +185,27 @@
             background-color: var(--primary-dark);
             transform: translateY(-2px);
         }
+        /* NEW: Style for the Google Sign-In Button */
+        #googleSignInButton {
+            background-color: #ffffff;
+            color: #757575;
+            border: 1px solid #dadce0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-weight: 500;
+            margin-top: 15px;
+        }
+        #googleSignInButton:hover {
+            background-color: #f8f9fa;
+            box-shadow: 0 1px 3px 1px rgba(66, 133, 244, 0.15);
+            transform: translateY(-2px);
+        }
+        #googleSignInButton img {
+            width: 20px;
+            height: 20px;
+        }
 
         /* Messages & Spinners */
         .spinner {
@@ -498,6 +519,14 @@
                         <input type="password" class="form-control" id="loginPassword" placeholder="••••••" required>
                     </div>
                     <button type="submit" class="btn">Log In</button>
+
+                    <!-- NEW: Google Sign-In Button -->
+                    <button type="button" class="btn" id="googleSignInButton">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+                        Sign in with Google
+                    </button>
+                    <!-- End of NEW Button -->
+
                 </form>
                 <div id="loginSpinner" class="spinner"></div>
                 <div id="loginMessage" class="message"></div>
@@ -640,10 +669,30 @@
                 });
         });
 
+        // NEW: Google Sign-In Handler
+        document.getElementById('googleSignInButton').addEventListener('click', () => {
+            // Create an instance of the Google provider object[citation:2]
+            const googleProvider = new firebase.auth.GoogleAuthProvider();
+            const messageEl = document.getElementById('loginMessage');
+
+            // Authenticate with Firebase using the Google provider object with a pop-up[citation:2]
+            auth.signInWithPopup(googleProvider)
+                .then((result) => {
+                    // Signed in successfully
+                    messageEl.textContent = `Signed in with Google!`;
+                    messageEl.className = 'message success-message';
+                })
+                .catch((error) => {
+                    // Handle Errors here[citation:2]
+                    messageEl.textContent = `Google Sign-In Error: ${error.message}`;
+                    messageEl.className = 'message error-message';
+                });
+        });
+
         // ========================================
         // PASSWORD RESET MODAL CONTROLS
         // ========================================
-        
+
         // Open password reset modal when "Forgot your password?" is clicked
         document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
             e.preventDefault();
@@ -676,16 +725,16 @@
             try {
                 // Just use Firebase's built-in method for now
                 await auth.sendPasswordResetEmail(email);
-                
+
                 messageEl.textContent = `✅ Password reset email sent to ${email}. Check your inbox!`;
                 messageEl.className = 'success-message';
                 e.target.reset();
-                
+
                 // Close modal after 3 seconds
                 setTimeout(() => {
                     document.getElementById('passwordResetModal').style.display = 'none';
                 }, 3000);
-                
+
             } catch (error) {
                 console.error('Password reset error:', error);
                 messageEl.textContent = `❌ Error: ${error.message}`;
@@ -714,8 +763,9 @@
                 gameSection.style.display = 'flex';
                 authSection.style.display = 'none';
                 userInfoPanel.style.display = 'flex';
+                // Display the user's email (works for both email and Google accounts)
                 userEmailDisplay.textContent = user.email;
-                
+
                 // Initialize game if not already running
                 if (gameState === "start") {
                     resetGame();
@@ -725,7 +775,7 @@
                 gameSection.style.display = 'none';
                 authSection.style.display = 'block';
                 userInfoPanel.style.display = 'none';
-                
+
                 // Reset game state
                 gameState = "start";
                 score = 0;
@@ -745,7 +795,7 @@
             player.y = 350;
             player.velocityY = 0;
             player.grounded = true;
-            
+
             document.getElementById('scoreDisplay').textContent = "Score: 0";
             document.getElementById('startOverlay').style.display = 'flex';
             document.getElementById('pauseOverlay').style.display = 'none';
@@ -771,7 +821,7 @@
         function createObstacle() {
             const settings = difficultySettings[difficulty];
             const height = 40 + Math.random() * 30;
-            
+
             obstacles.push({
                 x: canvas.width,
                 y: canvas.height - height,
@@ -784,49 +834,49 @@
 
         function update() {
             if (gameState !== "playing") return;
-            
+
             frame++;
-            
+
             // Clear canvas
             ctx.fillStyle = "#111133";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
+
             // Draw ground
             ctx.fillStyle = "#333355";
             ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
-            
+
             // Player physics
             const settings = difficultySettings[difficulty];
             player.velocityY += settings.gravity;
             player.y += player.velocityY;
-            
+
             // Ground collision
             if (player.y + player.height >= canvas.height - 10) {
                 player.y = canvas.height - player.height - 10;
                 player.velocityY = 0;
                 player.grounded = true;
             }
-            
+
             // Draw player
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
-            
+
             // Generate obstacles
             if (frame % Math.floor(settings.obstacleFrequency / gameSpeed) === 0) {
                 createObstacle();
             }
-            
+
             // Update obstacles
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const obs = obstacles[i];
                 obs.x -= settings.obstacleSpeed * gameSpeed;
-                
+
                 // Check if player passed obstacle
                 if (!obs.passed && obs.x + obs.width < player.x) {
                     obs.passed = true;
                     score += 10;
                 }
-                
+
                 // Collision detection
                 if (
                     player.x < obs.x + obs.width &&
@@ -837,51 +887,51 @@
                     gameOver();
                     return;
                 }
-                
+
                 // Remove off-screen obstacles
                 if (obs.x + obs.width < 0) {
                     obstacles.splice(i, 1);
                 }
-                
+
                 // Draw obstacle
                 ctx.fillStyle = obs.color;
                 ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
             }
-            
+
             // Update score
             score += 0.1;
             document.getElementById('scoreDisplay').textContent = "Score: " + Math.floor(score);
-            
+
             // Draw score on canvas
             ctx.fillStyle = "#ffffff";
             ctx.font = "bold 24px Arial";
             ctx.fillText("SCORE: " + Math.floor(score), 20, 40);
-            
+
             // Continue game loop
             requestAnimationFrame(update);
         }
 
         function gameOver() {
             gameState = "gameOver";
-            
+
             // Draw game over screen
             ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
+
             ctx.fillStyle = "#ffff34";
             ctx.font = "bold 48px Arial";
             ctx.textAlign = "center";
             ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
-            
+
             ctx.fillStyle = "#ffffff";
             ctx.font = "28px Arial";
             ctx.fillText("Score: " + Math.floor(score), canvas.width / 2, canvas.height / 2 + 30);
-            
+
             ctx.fillStyle = "#ffff34";
             ctx.font = "18px Arial";
             ctx.fillText("Click START to play again", canvas.width / 2, canvas.height / 2 + 80);
             ctx.textAlign = "start";
-            
+
             // Reset after 3 seconds
             setTimeout(() => {
                 document.getElementById('startOverlay').style.display = 'flex';
@@ -897,7 +947,7 @@
         document.getElementById('resumeBtn').addEventListener('click', togglePause);
         document.getElementById('restartBtn').addEventListener('click', resetGame);
         document.getElementById('restartFromPauseBtn').addEventListener('click', resetGame);
-        
+
         document.getElementById('easyBtn').addEventListener('click', () => {
             difficulty = "easy";
             document.querySelectorAll('.difficultyBtn').forEach(btn => btn.classList.remove('active'));
