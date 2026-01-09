@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Fence Jumper - Game Portal</title>
+    <title>Fence Jumper Pro - Game Portal</title>
     <style>
         /* === Base Layout & Variables === */
         :root {
@@ -349,6 +349,36 @@
             color: #111133;
         }
 
+        /* High Score Table */
+        #highScoreTable {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        #highScoreTable h3 {
+            color: var(--player-color);
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .score-row:last-child {
+            border-bottom: none;
+        }
+        .score-difficulty {
+            color: #aaaaff;
+        }
+        .score-value {
+            color: var(--player-color);
+            font-weight: bold;
+        }
+
         /* Game Overlays */
         #startOverlay {
             position: absolute;
@@ -432,7 +462,7 @@
 <body>
     <!-- Header with User Info -->
     <header class="site-header">
-        <h1>🧍 FENCE JUMPER</h1>
+        <h1>🧍 FENCE JUMPER PRO</h1>
         <div id="userInfoPanel">
             <span id="userEmailDisplay"></span>
             <button id="logoutButton">Log Out</button>
@@ -466,10 +496,27 @@
                         <button id="restartBtn" class="controlBtn">Restart (R)</button>
                     </div>
                 </div>
+                
+                <!-- High Score Table -->
+                <div id="highScoreTable">
+                    <h3>Personal Best Scores</h3>
+                    <div class="score-row">
+                        <span class="score-difficulty">Easy:</span>
+                        <span class="score-value" id="easyHighScore">0</span>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-difficulty">Medium:</span>
+                        <span class="score-value" id="mediumHighScore">0</span>
+                    </div>
+                    <div class="score-row">
+                        <span class="score-difficulty">Hard:</span>
+                        <span class="score-value" id="hardHighScore">0</span>
+                    </div>
+                </div>
 
                 <!-- Start Game Overlay -->
                 <div id="startOverlay">
-                    <div class="overlayTitle">FENCE JUMPER</div>
+                    <div class="overlayTitle">FENCE JUMPER PRO</div>
                     <div class="overlayText">Run and jump over fences to avoid obstacles. Survive as long as possible!</div>
                     <button id="startBtn" class="startBtn">START GAME</button>
                 </div>
@@ -551,6 +598,7 @@
                     <li>🔄 <strong>R Key:</strong> Restart the game</li>
                     <li>📱 <strong>On Mobile:</strong> Tap the yellow button to jump</li>
                     <li>🎚️ <strong>Difficulty:</strong> Higher difficulty = faster speed & more points</li>
+                    <li>🏆 <strong>High Scores:</strong> Each difficulty level has its own high score!</li>
                 </ul>
             </div>
         </aside>
@@ -576,7 +624,7 @@
 
     <!-- Footer -->
     <footer class="site-footer">
-        <p>Fence Jumper Game Portal | High scores are saved locally in your browser.</p>
+        <p>Fence Jumper Pro Game Portal | High scores are saved per difficulty level.</p>
     </footer>
 
     <!-- Firebase SDK -->
@@ -599,7 +647,7 @@
         const auth = firebase.auth();
 
         // ========================================
-        // GAME VARIABLES - UPDATED FOR PERSON & FENCES
+        // GAME VARIABLES - UPDATED FOR REALISTIC HUMAN
         // ========================================
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
@@ -610,26 +658,119 @@
         let gameSpeed = 1;
         let fences = [];
         let clouds = [];
+        let particles = [];
         
-        // Person character with running animation
-        const person = {
+        // Realistic Human Character with Advanced Animation
+        const human = {
             x: 80, 
             y: 350, 
-            width: 30, 
-            height: 60,
+            width: 40, 
+            height: 80,
             velocityY: 0, 
             grounded: true, 
-            color: "#ffff34",
-            legAngle: 0,
-            armAngle: 0,
-            animationSpeed: 0.2
+            
+            // Animation states
+            legPhase: 0,
+            armPhase: 0,
+            bodyTilt: 0,
+            headBob: 0,
+            hairFlow: 0,
+            clothesFlap: 0,
+            
+            // Physics
+            jumpCharge: 0,
+            isCrouching: false,
+            
+            // Colors
+            skinColor: "#FFDBAC",
+            hairColor: "#8B4513",
+            shirtColor: "#FF3333",
+            pantsColor: "#1E3A8A",
+            shoesColor: "#333333"
         };
         
         const difficultySettings = {
-            easy: { fenceSpeed: 5, fenceFrequency: 80, gravity: 0.8, jumpStrength: -20 },
-            medium: { fenceSpeed: 7, fenceFrequency: 60, gravity: 1.0, jumpStrength: -22 },
-            hard: { fenceSpeed: 9, fenceFrequency: 45, gravity: 1.2, jumpStrength: -24 }
+            easy: { 
+                fenceSpeed: 5, 
+                fenceFrequency: 80, 
+                gravity: 0.8, 
+                jumpStrength: -20,
+                pointMultiplier: 1.0
+            },
+            medium: { 
+                fenceSpeed: 7, 
+                fenceFrequency: 60, 
+                gravity: 1.0, 
+                jumpStrength: -22,
+                pointMultiplier: 1.5
+            },
+            hard: { 
+                fenceSpeed: 9, 
+                fenceFrequency: 45, 
+                gravity: 1.2, 
+                jumpStrength: -24,
+                pointMultiplier: 2.0
+            }
         };
+
+        // High Scores System
+        let highScores = {
+            easy: 0,
+            medium: 0,
+            hard: 0
+        };
+
+        // Load high scores from localStorage
+        function loadHighScores() {
+            const saved = localStorage.getItem('fenceJumperHighScores');
+            if (saved) {
+                highScores = JSON.parse(saved);
+            }
+            updateHighScoreDisplay();
+        }
+
+        // Save high scores to localStorage
+        function saveHighScores() {
+            localStorage.setItem('fenceJumperHighScores', JSON.stringify(highScores));
+        }
+
+        // Check and update high score
+        function checkHighScore(currentScore, difficulty) {
+            if (currentScore > highScores[difficulty]) {
+                highScores[difficulty] = Math.floor(currentScore);
+                saveHighScores();
+                updateHighScoreDisplay();
+                
+                // Show new high score celebration
+                createHighScoreParticles();
+                
+                return true;
+            }
+            return false;
+        }
+
+        // Update high score display
+        function updateHighScoreDisplay() {
+            document.getElementById('easyHighScore').textContent = highScores.easy;
+            document.getElementById('mediumHighScore').textContent = highScores.medium;
+            document.getElementById('hardHighScore').textContent = highScores.hard;
+            document.getElementById('currentHighScore').textContent = highScores[difficulty];
+        }
+
+        // Create celebration particles for new high score
+        function createHighScoreParticles() {
+            for (let i = 0; i < 30; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10 - 5,
+                    size: Math.random() * 5 + 2,
+                    color: ['#ffff34', '#4a9eff', '#ff3333', '#00ff00'][Math.floor(Math.random() * 4)],
+                    life: 60
+                });
+            }
+        }
 
         // Initialize clouds
         for (let i = 0; i < 5; i++) {
@@ -642,112 +783,388 @@
             });
         }
 
+        // Load high scores on start
+        loadHighScores();
+
         // ========================================
-        // DRAWING FUNCTIONS
+        // REALISTIC HUMAN DRAWING FUNCTIONS
         // ========================================
-        function drawPerson() {
+        function updateHumanAnimation() {
             const settings = difficultySettings[difficulty];
             
-            // Update animation angles for running
-            if (person.grounded) {
-                person.legAngle += person.animationSpeed;
-                person.armAngle += person.animationSpeed;
+            // Update animation phases
+            if (human.grounded && !human.isCrouching) {
+                human.legPhase += 0.3;
+                human.armPhase += 0.3;
+                human.headBob = Math.sin(frame * 0.1) * 2;
+                human.clothesFlap = Math.sin(frame * 0.15) * 0.1;
+                human.hairFlow = Math.sin(frame * 0.12) * 0.2;
+            } else if (human.grounded && human.isCrouching) {
+                human.legPhase = 0;
+                human.armPhase = Math.PI * 0.5;
+                human.bodyTilt = Math.PI * 0.05;
+            } else {
+                // Jumping animation
+                human.legPhase = Math.PI * 0.3;
+                human.armPhase = Math.PI * 0.7;
+                human.bodyTilt = human.velocityY * 0.01;
+                human.hairFlow = Math.sin(frame * 0.2) * 0.5;
             }
             
-            // Draw body (main rectangle)
-            ctx.fillStyle = person.color;
-            ctx.fillRect(person.x, person.y, person.width, person.height);
+            // Clamp values
+            human.legPhase %= Math.PI * 2;
+            human.armPhase %= Math.PI * 2;
+        }
+
+        function drawHuman() {
+            updateHumanAnimation();
             
-            // Draw head
-            ctx.fillStyle = "#ffcc99";
-            ctx.beginPath();
-            ctx.arc(person.x + person.width/2, person.y - 10, 15, 0, Math.PI * 2);
-            ctx.fill();
+            const centerX = human.x + human.width / 2;
+            const bodyBottom = human.y + human.height;
             
-            // Draw face
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(person.x + person.width/2 - 3, person.y - 5, 2, 2); // Left eye
-            ctx.fillRect(person.x + person.width/2 + 3, person.y - 5, 2, 2); // Right eye
+            // Save context for transformations
+            ctx.save();
+            ctx.translate(centerX, human.y + human.height * 0.4);
+            ctx.rotate(human.bodyTilt);
+            ctx.translate(-centerX, -(human.y + human.height * 0.4));
             
-            // Draw legs (running animation)
-            ctx.strokeStyle = "#000000";
-            ctx.lineWidth = 3;
+            // Draw legs with realistic bending
+            drawLegs(centerX, bodyBottom);
+            
+            // Draw torso
+            drawTorso(centerX, human.y);
+            
+            // Draw arms
+            drawArms(centerX, human.y);
+            
+            // Draw head with hair
+            drawHead(centerX, human.y);
+            
+            // Draw facial features
+            drawFace(centerX, human.y);
+            
+            ctx.restore();
+        }
+
+        function drawLegs(centerX, bodyBottom) {
+            const legLength = human.height * 0.5;
+            const thighLength = legLength * 0.6;
+            const calfLength = legLength * 0.4;
             
             // Left leg
-            ctx.beginPath();
-            ctx.moveTo(person.x + person.width/2, person.y + person.height);
-            const leg1X = person.x + person.width/2 - 10 + Math.sin(person.legAngle) * 15;
-            const leg1Y = person.y + person.height + 30;
-            ctx.lineTo(leg1X, leg1Y);
-            ctx.stroke();
+            const leftThighAngle = Math.sin(human.legPhase) * 0.8 - 0.3;
+            const leftCalfAngle = Math.sin(human.legPhase + Math.PI) * 0.6;
+            
+            const leftKneeX = centerX - Math.cos(leftThighAngle) * thighLength;
+            const leftKneeY = bodyBottom - Math.sin(leftThighAngle) * thighLength;
             
             // Right leg
+            const rightThighAngle = Math.sin(human.legPhase + Math.PI) * 0.8 - 0.3;
+            const rightCalfAngle = Math.sin(human.legPhase) * 0.6;
+            
+            const rightKneeX = centerX - Math.cos(rightThighAngle) * thighLength;
+            const rightKneeY = bodyBottom - Math.sin(rightThighAngle) * thighLength;
+            
+            // Draw thighs (pants)
+            ctx.strokeStyle = human.pantsColor;
+            ctx.lineWidth = 12;
+            ctx.lineCap = 'round';
+            
+            // Left thigh
             ctx.beginPath();
-            ctx.moveTo(person.x + person.width/2, person.y + person.height);
-            const leg2X = person.x + person.width/2 + 10 + Math.sin(person.legAngle + Math.PI) * 15;
-            const leg2Y = person.y + person.height + 30;
-            ctx.lineTo(leg2X, leg2Y);
+            ctx.moveTo(centerX, bodyBottom);
+            ctx.lineTo(leftKneeX, leftKneeY);
             ctx.stroke();
             
-            // Draw arms (jumping/running animation)
-            if (!person.grounded) {
-                // Jumping arms
-                ctx.beginPath();
-                ctx.moveTo(person.x + person.width/2, person.y + 20);
-                ctx.lineTo(person.x + person.width/2 - 20, person.y + 30);
-                ctx.stroke();
+            // Right thigh
+            ctx.beginPath();
+            ctx.moveTo(centerX, bodyBottom);
+            ctx.lineTo(rightKneeX, rightKneeY);
+            ctx.stroke();
+            
+            // Draw calves
+            ctx.strokeStyle = human.pantsColor;
+            ctx.lineWidth = 10;
+            
+            // Left calf
+            const leftAnkleX = leftKneeX - Math.cos(leftThighAngle + leftCalfAngle) * calfLength;
+            const leftAnkleY = leftKneeY - Math.sin(leftThighAngle + leftCalfAngle) * calfLength;
+            
+            ctx.beginPath();
+            ctx.moveTo(leftKneeX, leftKneeY);
+            ctx.lineTo(leftAnkleX, leftAnkleY);
+            ctx.stroke();
+            
+            // Right calf
+            const rightAnkleX = rightKneeX - Math.cos(rightThighAngle + rightCalfAngle) * calfLength;
+            const rightAnkleY = rightKneeY - Math.sin(rightThighAngle + rightCalfAngle) * calfLength;
+            
+            ctx.beginPath();
+            ctx.moveTo(rightKneeX, rightKneeY);
+            ctx.lineTo(rightAnkleX, rightAnkleY);
+            ctx.stroke();
+            
+            // Draw shoes
+            ctx.fillStyle = human.shoesColor;
+            ctx.beginPath();
+            ctx.arc(leftAnkleX, leftAnkleY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(rightAnkleX, rightAnkleY, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawTorso(centerX, topY) {
+            const torsoHeight = human.height * 0.5;
+            const torsoWidth = human.width * 0.7;
+            
+            // Draw shirt with some wrinkle effect
+            ctx.fillStyle = human.shirtColor;
+            ctx.beginPath();
+            ctx.ellipse(centerX, topY + torsoHeight * 0.5, 
+                       torsoWidth / 2, torsoHeight / 2, 
+                       human.clothesFlap, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw collar
+            ctx.fillStyle = "#FFFFFF";
+            ctx.beginPath();
+            ctx.arc(centerX, topY + torsoHeight * 0.3, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawArms(centerX, topY) {
+            const armLength = human.height * 0.4;
+            const upperArmLength = armLength * 0.6;
+            const forearmLength = armLength * 0.4;
+            
+            const shoulderY = topY + human.height * 0.3;
+            
+            // Left arm
+            const leftUpperAngle = Math.sin(human.armPhase) * 1.2 + Math.PI * 0.3;
+            const leftForearmAngle = Math.sin(human.armPhase + Math.PI * 0.5) * 0.8;
+            
+            const leftElbowX = centerX - Math.cos(leftUpperAngle) * upperArmLength;
+            const leftElbowY = shoulderY - Math.sin(leftUpperAngle) * upperArmLength;
+            
+            // Right arm
+            const rightUpperAngle = Math.sin(human.armPhase + Math.PI) * 1.2 + Math.PI * 0.3;
+            const rightForearmAngle = Math.sin(human.armPhase + Math.PI * 1.5) * 0.8;
+            
+            const rightElbowX = centerX - Math.cos(rightUpperAngle) * upperArmLength;
+            const rightElbowY = shoulderY - Math.sin(rightUpperAngle) * upperArmLength;
+            
+            // Draw upper arms
+            ctx.strokeStyle = human.skinColor;
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            
+            // Left upper arm
+            ctx.beginPath();
+            ctx.moveTo(centerX, shoulderY);
+            ctx.lineTo(leftElbowX, leftElbowY);
+            ctx.stroke();
+            
+            // Right upper arm
+            ctx.beginPath();
+            ctx.moveTo(centerX, shoulderY);
+            ctx.lineTo(rightElbowX, rightElbowY);
+            ctx.stroke();
+            
+            // Draw forearms
+            ctx.lineWidth = 6;
+            
+            // Left forearm
+            const leftWristX = leftElbowX - Math.cos(leftUpperAngle + leftForearmAngle) * forearmLength;
+            const leftWristY = leftElbowY - Math.sin(leftUpperAngle + leftForearmAngle) * forearmLength;
+            
+            ctx.beginPath();
+            ctx.moveTo(leftElbowX, leftElbowY);
+            ctx.lineTo(leftWristX, leftWristY);
+            ctx.stroke();
+            
+            // Right forearm
+            const rightWristX = rightElbowX - Math.cos(rightUpperAngle + rightForearmAngle) * forearmLength;
+            const rightWristY = rightElbowY - Math.sin(rightUpperAngle + rightForearmAngle) * forearmLength;
+            
+            ctx.beginPath();
+            ctx.moveTo(rightElbowX, rightElbowY);
+            ctx.lineTo(rightWristX, rightWristY);
+            ctx.stroke();
+            
+            // Draw hands
+            ctx.fillStyle = human.skinColor;
+            ctx.beginPath();
+            ctx.arc(leftWristX, leftWristY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(rightWristX, rightWristY, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawHead(centerX, topY) {
+            const headRadius = human.width * 0.3;
+            const headY = topY - headRadius + human.headBob;
+            
+            // Draw head
+            ctx.fillStyle = human.skinColor;
+            ctx.beginPath();
+            ctx.arc(centerX, headY, headRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw hair with flow effect
+            ctx.fillStyle = human.hairColor;
+            ctx.beginPath();
+            ctx.arc(centerX, headY - headRadius * 0.3, headRadius * 0.9, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Hair strands
+            ctx.strokeStyle = human.hairColor;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                const angle = i * 0.4 - 1 + human.hairFlow;
+                const strandX = centerX + Math.cos(angle) * headRadius * 0.8;
+                const strandY = headY - headRadius * 0.8 + Math.sin(angle) * headRadius * 0.5;
                 
                 ctx.beginPath();
-                ctx.moveTo(person.x + person.width/2, person.y + 20);
-                ctx.lineTo(person.x + person.width/2 + 20, person.y + 30);
-                ctx.stroke();
-            } else {
-                // Running arms
-                ctx.beginPath();
-                ctx.moveTo(person.x + person.width/2, person.y + 20);
-                const arm1X = person.x + person.width/2 - 15 + Math.sin(person.armAngle) * 10;
-                const arm1Y = person.y + 35;
-                ctx.lineTo(arm1X, arm1Y);
-                ctx.stroke();
-                
-                ctx.beginPath();
-                ctx.moveTo(person.x + person.width/2, person.y + 20);
-                const arm2X = person.x + person.width/2 + 15 + Math.sin(person.armAngle + Math.PI) * 10;
-                const arm2Y = person.y + 35;
-                ctx.lineTo(arm2X, arm2Y);
+                ctx.moveTo(centerX, headY - headRadius * 0.3);
+                ctx.quadraticCurveTo(
+                    centerX + Math.cos(angle) * headRadius * 0.4,
+                    headY - headRadius * 0.6,
+                    strandX, strandY
+                );
                 ctx.stroke();
             }
+        }
+
+        function drawFace(centerX, topY) {
+            const headRadius = human.width * 0.3;
+            const headY = topY - headRadius + human.headBob;
             
-            // Draw clothes
-            ctx.fillStyle = "#ff3333";
-            ctx.fillRect(person.x, person.y + 10, person.width, 15);
+            // Draw eyes with blinking
+            const blink = Math.sin(frame * 0.05) > 0.9 ? 0.1 : 0.3;
+            
+            ctx.fillStyle = "#000000";
+            ctx.beginPath();
+            ctx.arc(centerX - headRadius * 0.3, headY - headRadius * 0.1, headRadius * blink, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(centerX + headRadius * 0.3, headY - headRadius * 0.1, headRadius * blink, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw eyebrows
+            ctx.strokeStyle = "#000000";
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX - headRadius * 0.5, headY - headRadius * 0.3);
+            ctx.lineTo(centerX - headRadius * 0.1, headY - headRadius * 0.25);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX + headRadius * 0.1, headY - headRadius * 0.25);
+            ctx.lineTo(centerX + headRadius * 0.5, headY - headRadius * 0.3);
+            ctx.stroke();
+            
+            // Draw nose
+            ctx.beginPath();
+            ctx.arc(centerX, headY + headRadius * 0.1, headRadius * 0.1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw mouth - changes with jumping
+            const mouthY = headY + headRadius * 0.4;
+            const mouthWidth = headRadius * 0.4;
+            
+            if (human.grounded) {
+                ctx.beginPath();
+                ctx.arc(centerX, mouthY, mouthWidth * 0.5, 0, Math.PI);
+                ctx.stroke();
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(centerX - mouthWidth, mouthY);
+                ctx.lineTo(centerX + mouthWidth, mouthY);
+                ctx.stroke();
+            }
         }
 
         function drawFence(fence) {
-            // Draw fence post
+            // Draw fence post with wood texture
             ctx.fillStyle = "#654321";
             ctx.fillRect(fence.x, fence.y, fence.width, fence.height);
             
-            // Draw fence crossbars
+            // Wood grain details
+            ctx.strokeStyle = "#5D4037";
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 3; i++) {
+                const y = fence.y + i * (fence.height / 3);
+                ctx.beginPath();
+                ctx.moveTo(fence.x, y);
+                ctx.bezierCurveTo(
+                    fence.x + fence.width * 0.3, y + 2,
+                    fence.x + fence.width * 0.7, y - 2,
+                    fence.x + fence.width, y
+                );
+                ctx.stroke();
+            }
+            
+            // Draw fence crossbars with nails
             ctx.fillStyle = "#8B4513";
             ctx.fillRect(fence.x - 5, fence.y + fence.height * 0.3, fence.width + 10, 8);
             ctx.fillRect(fence.x - 5, fence.y + fence.height * 0.6, fence.width + 10, 8);
             
+            // Draw nails
+            ctx.fillStyle = "#C0C0C0";
+            [fence.x - 3, fence.x + fence.width/2, fence.x + fence.width + 3].forEach(nailX => {
+                [fence.y + fence.height * 0.3 + 4, fence.y + fence.height * 0.6 + 4].forEach(nailY => {
+                    ctx.beginPath();
+                    ctx.arc(nailX, nailY, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            });
+            
             // Draw fence top
             ctx.fillStyle = "#A0522D";
             ctx.beginPath();
-            ctx.arc(fence.x + fence.width/2, fence.y, 5, 0, Math.PI);
+            ctx.arc(fence.x + fence.width/2, fence.y, 6, 0, Math.PI);
             ctx.fill();
         }
 
         function drawCloud(cloud) {
-            ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+            ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
             ctx.beginPath();
             ctx.arc(cloud.x, cloud.y, cloud.height/2, 0, Math.PI * 2);
             ctx.arc(cloud.x + cloud.width/3, cloud.y - cloud.height/4, cloud.height/2, 0, Math.PI * 2);
             ctx.arc(cloud.x + cloud.width/2, cloud.y, cloud.height/2, 0, Math.PI * 2);
             ctx.arc(cloud.x + 2*cloud.width/3, cloud.y - cloud.height/4, cloud.height/2, 0, Math.PI * 2);
             ctx.fill();
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2; // gravity
+                p.life--;
+                
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life / 60;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
         }
 
         // ========================================
@@ -908,16 +1325,21 @@
             score = 0;
             frame = 0;
             fences = [];
+            particles = [];
             gameSpeed = 1;
-            person.y = 350;
-            person.velocityY = 0;
-            person.grounded = true;
-            person.legAngle = 0;
-            person.armAngle = 0;
+            human.y = 350;
+            human.velocityY = 0;
+            human.grounded = true;
+            human.legPhase = 0;
+            human.armPhase = 0;
+            human.bodyTilt = 0;
 
             document.getElementById('scoreDisplay').textContent = "Score: 0";
             document.getElementById('startOverlay').style.display = 'flex';
             document.getElementById('pauseOverlay').style.display = 'none';
+            
+            // Update current high score display
+            updateHighScoreDisplay();
         }
 
         function startGame() {
@@ -973,28 +1395,43 @@
                 drawCloud(cloud);
             });
 
-            // Draw ground
+            // Draw ground with texture
             ctx.fillStyle = "#8B4513";
             ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
             
-            // Draw grass on top of ground
+            // Draw grass with individual blades
             ctx.fillStyle = "#2E8B57";
             ctx.fillRect(0, canvas.height - 10, canvas.width, 3);
-
-            // Person physics
-            const settings = difficultySettings[difficulty];
-            person.velocityY += settings.gravity;
-            person.y += person.velocityY;
-
-            // Ground collision
-            if (person.y + person.height >= canvas.height - 10) {
-                person.y = canvas.height - person.height - 10;
-                person.velocityY = 0;
-                person.grounded = true;
+            
+            // Draw grass blades
+            ctx.strokeStyle = "#228B22";
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 5) {
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height - 7);
+                ctx.lineTo(i + Math.sin(frame * 0.1 + i) * 2, canvas.height - 15 + Math.sin(frame * 0.05 + i) * 3);
+                ctx.stroke();
             }
 
-            // Draw person
-            drawPerson();
+            // Human physics
+            const settings = difficultySettings[difficulty];
+            human.velocityY += settings.gravity;
+            human.y += human.velocityY;
+
+            // Ground collision
+            if (human.y + human.height >= canvas.height - 10) {
+                human.y = canvas.height - human.height - 10;
+                human.velocityY = 0;
+                human.grounded = true;
+                human.isCrouching = false;
+            }
+
+            // Draw human
+            drawHuman();
+
+            // Update particles
+            updateParticles();
+            drawParticles();
 
             // Generate fences
             if (frame % Math.floor(settings.fenceFrequency / gameSpeed) === 0) {
@@ -1006,18 +1443,25 @@
                 const fence = fences[i];
                 fence.x -= settings.fenceSpeed * gameSpeed;
 
-                // Check if person passed fence
-                if (!fence.passed && fence.x + fence.width < person.x) {
+                // Check if human passed fence
+                if (!fence.passed && fence.x + fence.width < human.x) {
                     fence.passed = true;
-                    score += 10;
+                    score += 10 * settings.pointMultiplier;
                 }
 
-                // Collision detection
+                // Collision detection - using bounding box
+                const humanBounds = {
+                    x: human.x - human.width/2,
+                    y: human.y - human.height * 0.2,
+                    width: human.width,
+                    height: human.height * 0.9
+                };
+
                 if (
-                    person.x < fence.x + fence.width &&
-                    person.x + person.width > fence.x &&
-                    person.y < fence.y + fence.height &&
-                    person.y + person.height > fence.y
+                    humanBounds.x < fence.x + fence.width &&
+                    humanBounds.x + humanBounds.width > fence.x &&
+                    humanBounds.y < fence.y + fence.height &&
+                    humanBounds.y + humanBounds.height > fence.y
                 ) {
                     gameOver();
                     return;
@@ -1033,13 +1477,16 @@
             }
 
             // Update score
-            score += 0.1;
+            score += 0.1 * settings.pointMultiplier;
             document.getElementById('scoreDisplay').textContent = "Score: " + Math.floor(score);
 
             // Draw score on canvas
             ctx.fillStyle = "#000000";
             ctx.font = "bold 24px Arial";
             ctx.fillText("SCORE: " + Math.floor(score), 20, 40);
+            
+            // Draw difficulty
+            ctx.fillText("DIFFICULTY: " + difficulty.toUpperCase(), 20, 70);
 
             // Continue game loop
             requestAnimationFrame(update);
@@ -1047,29 +1494,43 @@
 
         function gameOver() {
             gameState = "gameOver";
+            
+            // Check and update high score
+            const isNewHighScore = checkHighScore(score, difficulty);
 
             // Draw game over screen
-            ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.fillStyle = "#ffff34";
             ctx.font = "bold 48px Arial";
             ctx.textAlign = "center";
-            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 30);
+            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 50);
+            
+            if (isNewHighScore) {
+                ctx.fillStyle = "#00ff00";
+                ctx.font = "bold 32px Arial";
+                ctx.fillText("🎉 NEW HIGH SCORE! 🎉", canvas.width / 2, canvas.height / 2);
+            }
 
             ctx.fillStyle = "#ffffff";
             ctx.font = "28px Arial";
             ctx.fillText("Score: " + Math.floor(score), canvas.width / 2, canvas.height / 2 + 30);
+            
+            ctx.fillStyle = "#4a9eff";
+            ctx.font = "24px Arial";
+            ctx.fillText("High Score: " + highScores[difficulty], canvas.width / 2, canvas.height / 2 + 70);
 
             ctx.fillStyle = "#ffff34";
             ctx.font = "18px Arial";
-            ctx.fillText("Click START to play again", canvas.width / 2, canvas.height / 2 + 80);
+            ctx.fillText("Click START to play again", canvas.width / 2, canvas.height / 2 + 120);
             ctx.textAlign = "start";
 
             // Reset after 3 seconds
             setTimeout(() => {
                 document.getElementById('startOverlay').style.display = 'flex';
                 gameState = "start";
+                resetGame();
             }, 3000);
         }
 
@@ -1082,38 +1543,79 @@
         document.getElementById('restartBtn').addEventListener('click', resetGame);
         document.getElementById('restartFromPauseBtn').addEventListener('click', resetGame);
 
+        // Difficulty buttons with high score updates
         document.getElementById('easyBtn').addEventListener('click', () => {
             difficulty = "easy";
             document.querySelectorAll('.difficultyBtn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('easyBtn').classList.add('active');
+            updateHighScoreDisplay();
         });
         document.getElementById('mediumBtn').addEventListener('click', () => {
             difficulty = "medium";
             document.querySelectorAll('.difficultyBtn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('mediumBtn').classList.add('active');
+            updateHighScoreDisplay();
         });
         document.getElementById('hardBtn').addEventListener('click', () => {
             difficulty = "hard";
             document.querySelectorAll('.difficultyBtn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('hardBtn').classList.add('active');
+            updateHighScoreDisplay();
         });
 
-        // Keyboard controls for jumping person
+        // Keyboard controls for jumping human
         document.addEventListener("keydown", (e) => {
-            if (gameState === "playing" && person.grounded && (e.code === "Space" || e.code === "ArrowUp")) {
-                person.velocityY = difficultySettings[difficulty].jumpStrength;
-                person.grounded = false;
+            if (gameState === "playing" && human.grounded && (e.code === "Space" || e.code === "ArrowUp")) {
+                human.velocityY = difficultySettings[difficulty].jumpStrength;
+                human.grounded = false;
+                human.isCrouching = false;
+            }
+            // Crouch
+            if (gameState === "playing" && human.grounded && (e.code === "ArrowDown" || e.code === "KeyC")) {
+                human.isCrouching = true;
+                human.height = 60;
+                human.y += 20;
             }
             if (e.code === "KeyP") togglePause();
             if (e.code === "KeyR") resetGame();
             if (e.code === "Enter" && gameState === "start") startGame();
         });
 
+        document.addEventListener("keyup", (e) => {
+            if (e.code === "ArrowDown" || e.code === "KeyC") {
+                if (human.isCrouching) {
+                    human.isCrouching = false;
+                    human.height = 80;
+                    human.y -= 20;
+                }
+            }
+        });
+
         // Mobile jump button
         document.getElementById('jumpBtn')?.addEventListener('click', () => {
-            if (gameState === "playing" && person.grounded) {
-                person.velocityY = difficultySettings[difficulty].jumpStrength;
-                person.grounded = false;
+            if (gameState === "playing" && human.grounded) {
+                human.velocityY = difficultySettings[difficulty].jumpStrength;
+                human.grounded = false;
+                human.isCrouching = false;
+            }
+        });
+        
+        // Mobile crouch button
+        document.getElementById('jumpBtn')?.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameState === "playing" && human.grounded && !human.isCrouching) {
+                human.isCrouching = true;
+                human.height = 60;
+                human.y += 20;
+            }
+        });
+        
+        document.getElementById('jumpBtn')?.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (human.isCrouching) {
+                human.isCrouching = false;
+                human.height = 80;
+                human.y -= 20;
             }
         });
     </script>
