@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Danger Dash - Game Portal</title>
+    <title>Fence Jumper - Game Portal</title>
     <style>
         /* === Base Layout & Variables === */
         :root {
@@ -9,9 +9,12 @@
             --primary-dark: #2a75f3;
             --success-color: #388e3c;
             --error-color: #d32f2f;
-            --background-dark: #0a0a2a;
+            --background-dark: #1a2a1a;
             --game-accent: #4a9eff;
             --player-color: #ffff34;
+            --ground-color: #8B4513;
+            --fence-color: #654321;
+            --sky-color: #87CEEB;
         }
         * {
             margin: 0;
@@ -30,7 +33,7 @@
 
         /* === Header & User Info === */
         .site-header {
-            background: rgba(10, 10, 40, 0.9);
+            background: rgba(26, 42, 26, 0.9);
             padding: 15px 30px;
             border-bottom: 2px solid var(--game-accent);
             display: flex;
@@ -41,7 +44,7 @@
         }
         .site-header h1 {
             font-size: 2.2rem;
-            background: linear-gradient(90deg, var(--player-color), var(--game-accent));
+            background: linear-gradient(90deg, #ffff34, #4a9eff);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
@@ -83,7 +86,7 @@
         /* === GAME SECTION (Hidden by default) === */
         .game-section {
             flex: 2;
-            background: rgba(20, 20, 50, 0.7);
+            background: rgba(30, 50, 30, 0.7);
             border-radius: 12px;
             padding: 20px;
             border: 2px solid var(--game-accent);
@@ -112,12 +115,12 @@
             border-radius: 8px;
             overflow: hidden;
             border: 3px solid var(--game-accent);
-            background-color: #111133;
+            background-color: var(--sky-color);
         }
         #gameCanvas {
             display: block;
             width: 100%;
-            background-color: #111133;
+            background-color: var(--sky-color);
             touch-action: none;
         }
 
@@ -125,7 +128,7 @@
         .auth-section {
             flex: 1;
             min-width: 350px;
-            background-color: rgba(30, 30, 60, 0.8);
+            background-color: rgba(40, 50, 40, 0.8);
             border-radius: 12px;
             padding: 25px;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -280,7 +283,7 @@
 
         /* === Game UI (SHOWN WHEN LOGGED IN) === */
         #uiPanel {
-            background-color: rgba(10, 10, 40, 0.9);
+            background-color: rgba(26, 42, 26, 0.9);
             padding: 12px 20px;
             border: 2px solid var(--game-accent);
             border-top: none;
@@ -429,7 +432,7 @@
 <body>
     <!-- Header with User Info -->
     <header class="site-header">
-        <h1>🚀 DANGER DASH</h1>
+        <h1>🧍 FENCE JUMPER</h1>
         <div id="userInfoPanel">
             <span id="userEmailDisplay"></span>
             <button id="logoutButton">Log Out</button>
@@ -440,8 +443,8 @@
     <div class="main-container">
         <!-- GAME SECTION - HIDDEN until login -->
         <section class="game-section" id="gameSection">
-            <h2>Navigate. Dodge. Survive.</h2>
-            <p class="game-description">Control your spaceship through a dangerous asteroid field. Jump over obstacles, avoid collisions, and beat your high score!</p>
+            <h2>Run. Jump. Survive.</h2>
+            <p class="game-description">Control your character to jump over fences. Avoid collisions, and beat your high score!</p>
 
             <div class="game-canvas-container">
                 <canvas id="gameCanvas" width="800" height="500"></canvas>
@@ -466,8 +469,8 @@
 
                 <!-- Start Game Overlay -->
                 <div id="startOverlay">
-                    <div class="overlayTitle">DANGER DASH</div>
-                    <div class="overlayText">Navigate through space, avoid obstacles, and survive as long as possible!</div>
+                    <div class="overlayTitle">FENCE JUMPER</div>
+                    <div class="overlayText">Run and jump over fences to avoid obstacles. Survive as long as possible!</div>
                     <button id="startBtn" class="startBtn">START GAME</button>
                 </div>
 
@@ -543,7 +546,7 @@
             <div class="auth-form-box">
                 <h3>How to Play</h3>
                 <ul style="list-style: none; color: #ccc;">
-                    <li>🔄 <strong>SPACEBAR / UP ARROW:</strong> Jump to avoid obstacles</li>
+                    <li>🔄 <strong>SPACEBAR / UP ARROW:</strong> Jump to avoid fences</li>
                     <li>⏸️ <strong>P Key:</strong> Pause/Resume the game</li>
                     <li>🔄 <strong>R Key:</strong> Restart the game</li>
                     <li>📱 <strong>On Mobile:</strong> Tap the yellow button to jump</li>
@@ -573,7 +576,7 @@
 
     <!-- Footer -->
     <footer class="site-footer">
-        <p>Danger Dash Game Portal | High scores are saved locally in your browser.</p>
+        <p>Fence Jumper Game Portal | High scores are saved locally in your browser.</p>
     </footer>
 
     <!-- Firebase SDK -->
@@ -596,7 +599,7 @@
         const auth = firebase.auth();
 
         // ========================================
-        // GAME VARIABLES
+        // GAME VARIABLES - UPDATED FOR PERSON & FENCES
         // ========================================
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
@@ -605,16 +608,147 @@
         let score = 0;
         let frame = 0;
         let gameSpeed = 1;
-        let obstacles = [];
-        const player = {
-            x: 80, y: 350, width: 40, height: 60,
-            velocityY: 0, grounded: true, color: "#ffff34"
+        let fences = [];
+        let clouds = [];
+        
+        // Person character with running animation
+        const person = {
+            x: 80, 
+            y: 350, 
+            width: 30, 
+            height: 60,
+            velocityY: 0, 
+            grounded: true, 
+            color: "#ffff34",
+            legAngle: 0,
+            armAngle: 0,
+            animationSpeed: 0.2
         };
+        
         const difficultySettings = {
-            easy: { obstacleSpeed: 5, obstacleFrequency: 70, gravity: 0.8, jumpStrength: -20 },
-            medium: { obstacleSpeed: 7, obstacleFrequency: 50, gravity: 1.0, jumpStrength: -22 },
-            hard: { obstacleSpeed: 9, obstacleFrequency: 35, gravity: 1.2, jumpStrength: -24 }
+            easy: { fenceSpeed: 5, fenceFrequency: 80, gravity: 0.8, jumpStrength: -20 },
+            medium: { fenceSpeed: 7, fenceFrequency: 60, gravity: 1.0, jumpStrength: -22 },
+            hard: { fenceSpeed: 9, fenceFrequency: 45, gravity: 1.2, jumpStrength: -24 }
         };
+
+        // Initialize clouds
+        for (let i = 0; i < 5; i++) {
+            clouds.push({
+                x: Math.random() * canvas.width,
+                y: 50 + Math.random() * 100,
+                width: 60 + Math.random() * 40,
+                height: 30,
+                speed: 0.5 + Math.random() * 0.5
+            });
+        }
+
+        // ========================================
+        // DRAWING FUNCTIONS
+        // ========================================
+        function drawPerson() {
+            const settings = difficultySettings[difficulty];
+            
+            // Update animation angles for running
+            if (person.grounded) {
+                person.legAngle += person.animationSpeed;
+                person.armAngle += person.animationSpeed;
+            }
+            
+            // Draw body (main rectangle)
+            ctx.fillStyle = person.color;
+            ctx.fillRect(person.x, person.y, person.width, person.height);
+            
+            // Draw head
+            ctx.fillStyle = "#ffcc99";
+            ctx.beginPath();
+            ctx.arc(person.x + person.width/2, person.y - 10, 15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw face
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(person.x + person.width/2 - 3, person.y - 5, 2, 2); // Left eye
+            ctx.fillRect(person.x + person.width/2 + 3, person.y - 5, 2, 2); // Right eye
+            
+            // Draw legs (running animation)
+            ctx.strokeStyle = "#000000";
+            ctx.lineWidth = 3;
+            
+            // Left leg
+            ctx.beginPath();
+            ctx.moveTo(person.x + person.width/2, person.y + person.height);
+            const leg1X = person.x + person.width/2 - 10 + Math.sin(person.legAngle) * 15;
+            const leg1Y = person.y + person.height + 30;
+            ctx.lineTo(leg1X, leg1Y);
+            ctx.stroke();
+            
+            // Right leg
+            ctx.beginPath();
+            ctx.moveTo(person.x + person.width/2, person.y + person.height);
+            const leg2X = person.x + person.width/2 + 10 + Math.sin(person.legAngle + Math.PI) * 15;
+            const leg2Y = person.y + person.height + 30;
+            ctx.lineTo(leg2X, leg2Y);
+            ctx.stroke();
+            
+            // Draw arms (jumping/running animation)
+            if (!person.grounded) {
+                // Jumping arms
+                ctx.beginPath();
+                ctx.moveTo(person.x + person.width/2, person.y + 20);
+                ctx.lineTo(person.x + person.width/2 - 20, person.y + 30);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(person.x + person.width/2, person.y + 20);
+                ctx.lineTo(person.x + person.width/2 + 20, person.y + 30);
+                ctx.stroke();
+            } else {
+                // Running arms
+                ctx.beginPath();
+                ctx.moveTo(person.x + person.width/2, person.y + 20);
+                const arm1X = person.x + person.width/2 - 15 + Math.sin(person.armAngle) * 10;
+                const arm1Y = person.y + 35;
+                ctx.lineTo(arm1X, arm1Y);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(person.x + person.width/2, person.y + 20);
+                const arm2X = person.x + person.width/2 + 15 + Math.sin(person.armAngle + Math.PI) * 10;
+                const arm2Y = person.y + 35;
+                ctx.lineTo(arm2X, arm2Y);
+                ctx.stroke();
+            }
+            
+            // Draw clothes
+            ctx.fillStyle = "#ff3333";
+            ctx.fillRect(person.x, person.y + 10, person.width, 15);
+        }
+
+        function drawFence(fence) {
+            // Draw fence post
+            ctx.fillStyle = "#654321";
+            ctx.fillRect(fence.x, fence.y, fence.width, fence.height);
+            
+            // Draw fence crossbars
+            ctx.fillStyle = "#8B4513";
+            ctx.fillRect(fence.x - 5, fence.y + fence.height * 0.3, fence.width + 10, 8);
+            ctx.fillRect(fence.x - 5, fence.y + fence.height * 0.6, fence.width + 10, 8);
+            
+            // Draw fence top
+            ctx.fillStyle = "#A0522D";
+            ctx.beginPath();
+            ctx.arc(fence.x + fence.width/2, fence.y, 5, 0, Math.PI);
+            ctx.fill();
+        }
+
+        function drawCloud(cloud) {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+            ctx.beginPath();
+            ctx.arc(cloud.x, cloud.y, cloud.height/2, 0, Math.PI * 2);
+            ctx.arc(cloud.x + cloud.width/3, cloud.y - cloud.height/4, cloud.height/2, 0, Math.PI * 2);
+            ctx.arc(cloud.x + cloud.width/2, cloud.y, cloud.height/2, 0, Math.PI * 2);
+            ctx.arc(cloud.x + 2*cloud.width/3, cloud.y - cloud.height/4, cloud.height/2, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
         // ========================================
         // AUTHENTICATION FUNCTIONS
@@ -673,21 +807,17 @@
                 });
         });
 
-        // NEW: Google Sign-In Handler
+        // Google Sign-In Handler
         document.getElementById('googleSignInButton').addEventListener('click', () => {
-            // Create an instance of the Google provider object[citation:2]
             const googleProvider = new firebase.auth.GoogleAuthProvider();
             const messageEl = document.getElementById('loginMessage');
 
-            // Authenticate with Firebase using the Google provider object with a pop-up[citation:2]
             auth.signInWithPopup(googleProvider)
                 .then((result) => {
-                    // Signed in successfully
                     messageEl.textContent = `Signed in with Google!`;
                     messageEl.className = 'message success-message';
                 })
                 .catch((error) => {
-                    // Handle Errors here[citation:2]
                     messageEl.textContent = `Google Sign-In Error: ${error.message}`;
                     messageEl.className = 'message error-message';
                 });
@@ -696,26 +826,21 @@
         // ========================================
         // PASSWORD RESET MODAL CONTROLS
         // ========================================
-
-        // Open password reset modal when "Forgot your password?" is clicked
         document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
             e.preventDefault();
             document.getElementById('passwordResetModal').style.display = 'flex';
         });
 
-        // Close modal when X is clicked
         document.getElementById('closeModal').addEventListener('click', () => {
             document.getElementById('passwordResetModal').style.display = 'none';
         });
 
-        // Close modal when clicking outside
         document.getElementById('passwordResetModal').addEventListener('click', (e) => {
             if (e.target.id === 'passwordResetModal') {
                 document.getElementById('passwordResetModal').style.display = 'none';
             }
         });
 
-        // Password Reset - SIMPLE VERSION
         document.getElementById('passwordResetForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('resetEmail').value;
@@ -727,18 +852,13 @@
             messageEl.className = '';
 
             try {
-                // Just use Firebase's built-in method for now
                 await auth.sendPasswordResetEmail(email);
-
                 messageEl.textContent = `✅ Password reset email sent to ${email}. Check your inbox!`;
                 messageEl.className = 'success-message';
                 e.target.reset();
-
-                // Close modal after 3 seconds
                 setTimeout(() => {
                     document.getElementById('passwordResetModal').style.display = 'none';
                 }, 3000);
-
             } catch (error) {
                 console.error('Password reset error:', error);
                 messageEl.textContent = `❌ Error: ${error.message}`;
@@ -748,7 +868,7 @@
             }
         });
 
-        // Logout - ONLY ONE TIME!
+        // Logout
         document.getElementById('logoutButton').addEventListener('click', () => {
             auth.signOut();
         });
@@ -763,42 +883,37 @@
             const userEmailDisplay = document.getElementById('userEmailDisplay');
 
             if (user) {
-                // User is logged IN: SHOW GAME, HIDE LOGIN
                 gameSection.style.display = 'flex';
                 authSection.style.display = 'none';
                 userInfoPanel.style.display = 'flex';
-                // Display the user's email (works for both email and Google accounts)
                 userEmailDisplay.textContent = user.email;
-
-                // Initialize game if not already running
                 if (gameState === "start") {
                     resetGame();
                 }
             } else {
-                // User is logged OUT: SHOW LOGIN, HIDE GAME
                 gameSection.style.display = 'none';
                 authSection.style.display = 'block';
                 userInfoPanel.style.display = 'none';
-
-                // Reset game state
                 gameState = "start";
                 score = 0;
-                obstacles = [];
+                fences = [];
             }
         });
 
         // ========================================
-        // GAME FUNCTIONS
+        // GAME FUNCTIONS - UPDATED FOR FENCES
         // ========================================
         function resetGame() {
             gameState = "start";
             score = 0;
             frame = 0;
-            obstacles = [];
+            fences = [];
             gameSpeed = 1;
-            player.y = 350;
-            player.velocityY = 0;
-            player.grounded = true;
+            person.y = 350;
+            person.velocityY = 0;
+            person.grounded = true;
+            person.legAngle = 0;
+            person.armAngle = 0;
 
             document.getElementById('scoreDisplay').textContent = "Score: 0";
             document.getElementById('startOverlay').style.display = 'flex';
@@ -822,16 +937,16 @@
             }
         }
 
-        function createObstacle() {
+        function createFence() {
             const settings = difficultySettings[difficulty];
-            const height = 40 + Math.random() * 30;
+            const height = 40 + Math.random() * 40;
 
-            obstacles.push({
+            fences.push({
                 x: canvas.width,
-                y: canvas.height - height,
-                width: 30 + Math.random() * 40,
+                y: canvas.height - height - 10,
+                width: 20,
                 height: height,
-                color: "#ff3333",
+                color: "#654321",
                 passed: false
             });
         }
@@ -841,65 +956,80 @@
 
             frame++;
 
-            // Clear canvas
-            ctx.fillStyle = "#111133";
+            // Clear canvas with sky gradient
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, "#87CEEB");
+            skyGradient.addColorStop(1, "#E0F7FF");
+            ctx.fillStyle = skyGradient;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Draw ground
-            ctx.fillStyle = "#333355";
-            ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
+            // Draw clouds
+            clouds.forEach(cloud => {
+                cloud.x -= cloud.speed;
+                if (cloud.x + cloud.width < 0) {
+                    cloud.x = canvas.width;
+                    cloud.y = 50 + Math.random() * 100;
+                }
+                drawCloud(cloud);
+            });
 
-            // Player physics
+            // Draw ground
+            ctx.fillStyle = "#8B4513";
+            ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
+            
+            // Draw grass on top of ground
+            ctx.fillStyle = "#2E8B57";
+            ctx.fillRect(0, canvas.height - 10, canvas.width, 3);
+
+            // Person physics
             const settings = difficultySettings[difficulty];
-            player.velocityY += settings.gravity;
-            player.y += player.velocityY;
+            person.velocityY += settings.gravity;
+            person.y += person.velocityY;
 
             // Ground collision
-            if (player.y + player.height >= canvas.height - 10) {
-                player.y = canvas.height - player.height - 10;
-                player.velocityY = 0;
-                player.grounded = true;
+            if (person.y + person.height >= canvas.height - 10) {
+                person.y = canvas.height - person.height - 10;
+                person.velocityY = 0;
+                person.grounded = true;
             }
 
-            // Draw player
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
+            // Draw person
+            drawPerson();
 
-            // Generate obstacles
-            if (frame % Math.floor(settings.obstacleFrequency / gameSpeed) === 0) {
-                createObstacle();
+            // Generate fences
+            if (frame % Math.floor(settings.fenceFrequency / gameSpeed) === 0) {
+                createFence();
             }
 
-            // Update obstacles
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                const obs = obstacles[i];
-                obs.x -= settings.obstacleSpeed * gameSpeed;
+            // Update fences
+            for (let i = fences.length - 1; i >= 0; i--) {
+                const fence = fences[i];
+                fence.x -= settings.fenceSpeed * gameSpeed;
 
-                // Check if player passed obstacle
-                if (!obs.passed && obs.x + obs.width < player.x) {
-                    obs.passed = true;
+                // Check if person passed fence
+                if (!fence.passed && fence.x + fence.width < person.x) {
+                    fence.passed = true;
                     score += 10;
                 }
 
                 // Collision detection
                 if (
-                    player.x < obs.x + obs.width &&
-                    player.x + player.width > obs.x &&
-                    player.y < obs.y + obs.height &&
-                    player.y + player.height > obs.y
+                    person.x < fence.x + fence.width &&
+                    person.x + person.width > fence.x &&
+                    person.y < fence.y + fence.height &&
+                    person.y + person.height > fence.y
                 ) {
                     gameOver();
                     return;
                 }
 
-                // Remove off-screen obstacles
-                if (obs.x + obs.width < 0) {
-                    obstacles.splice(i, 1);
+                // Remove off-screen fences
+                if (fence.x + fence.width < 0) {
+                    fences.splice(i, 1);
                 }
 
-                // Draw obstacle
-                ctx.fillStyle = obs.color;
-                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                // Draw fence
+                drawFence(fence);
             }
 
             // Update score
@@ -907,7 +1037,7 @@
             document.getElementById('scoreDisplay').textContent = "Score: " + Math.floor(score);
 
             // Draw score on canvas
-            ctx.fillStyle = "#ffffff";
+            ctx.fillStyle = "#000000";
             ctx.font = "bold 24px Arial";
             ctx.fillText("SCORE: " + Math.floor(score), 20, 40);
 
@@ -968,11 +1098,11 @@
             document.getElementById('hardBtn').classList.add('active');
         });
 
-        // Keyboard controls
+        // Keyboard controls for jumping person
         document.addEventListener("keydown", (e) => {
-            if (gameState === "playing" && player.grounded && (e.code === "Space" || e.code === "ArrowUp")) {
-                player.velocityY = difficultySettings[difficulty].jumpStrength;
-                player.grounded = false;
+            if (gameState === "playing" && person.grounded && (e.code === "Space" || e.code === "ArrowUp")) {
+                person.velocityY = difficultySettings[difficulty].jumpStrength;
+                person.grounded = false;
             }
             if (e.code === "KeyP") togglePause();
             if (e.code === "KeyR") resetGame();
@@ -981,9 +1111,9 @@
 
         // Mobile jump button
         document.getElementById('jumpBtn')?.addEventListener('click', () => {
-            if (gameState === "playing" && player.grounded) {
-                player.velocityY = difficultySettings[difficulty].jumpStrength;
-                player.grounded = false;
+            if (gameState === "playing" && person.grounded) {
+                person.velocityY = difficultySettings[difficulty].jumpStrength;
+                person.grounded = false;
             }
         });
     </script>
